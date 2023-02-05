@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grenat.Functional.DDD.Src", "Grenat.Functional.DDD.Src\Grenat.Functional.DDD.Src.csproj", "{3CFBC88A-D446-4728-A0BC-D26662A7C757}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Grenat.Functional.DDD.Tests", "Grenat.Functional.DDD.Tests\Grenat.Functional.DDD.Tests.csproj", "{487ECC85-02C9-4EA9-A867-0921B896E0D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3CFBC88A-D446-4728-A0BC-D26662A7C757}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3CFBC88A-D446-4728-A0BC-D26662A7C757}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3CFBC88A-D446-4728-A0BC-D26662A7C757}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3CFBC88A-D446-4728-A0BC-D26662A7C757}.Release|Any CPU.Build.0 = Release|Any CPU
+		{487ECC85-02C9-4EA9-A867-0921B896E0D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{487ECC85-02C9-4EA9-A867-0921B896E0D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{487ECC85-02C9-4EA9-A867-0921B896E0D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{487ECC85-02C9-4EA9-A867-0921B896E0D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {67EAD943-7DC0-4B72-8E5B-C363455DDBF2}
+	EndGlobalSection
+EndGlobal
