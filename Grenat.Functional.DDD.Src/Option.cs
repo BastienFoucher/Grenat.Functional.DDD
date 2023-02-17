@@ -1,6 +1,4 @@
-﻿using System.Security.Cryptography;
-
-namespace Grenat.Functional.DDD
+﻿namespace Grenat.Functional.DDD
 {
     public record Option<T>
     {
