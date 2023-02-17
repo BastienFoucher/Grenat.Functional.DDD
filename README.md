@@ -172,11 +172,11 @@ In case of an Error, `ValueObject<T>` switches to an invalid state and the Error
 Here is an example on how to use it. 
 ```C#
 var result = Quantity.Create(10, "Liters")
-						.Bind((q) => q.Add(10))
-						.Bind((q) => q.Add(100))
-						.Bind((q) => q.Add(10))
-						.Match(Valid: v => new { Value = v.Value, Errors = Enumerable.Empty<Error>()},
-								Invalid: e => new { Value = 0, Errors = e});
+            .Bind((q) => q.Add(10))
+            .Bind((q) => q.Add(100))
+            .Bind((q) => q.Add(10))
+            .Match(Valid: v => new { Value = v.Value, Errors = Enumerable.Empty<Error>()},
+                    Invalid: e => new { Value = 0, Errors = e});
 
 // Back to the normal world : handle the result
 if (result.Errors.Count() > 0)
