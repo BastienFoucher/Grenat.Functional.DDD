@@ -84,6 +84,58 @@
         }
 
         [TestMethod]
+        public async Task When_creating_a_valid_entity_then_the_async_map_fires_the_valid_function()
+        {
+            var sut = Entity<int>.Valid(0);
+
+            var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+                                    .Match(
+                                       Valid: v => "valid function",
+                                       Invalid: e => "invalid function");
+
+            Assert.AreEqual("valid function", result);
+        }
+
+        [TestMethod]
+        public async Task When_creating_an_invalid_entity_then_the_async_map_fires_the_invalid_function()
+        {
+            var sut = Entity<int>.Invalid(new Error("Invalid entity"));
+
+            var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+                                    .Match(
+                                       Valid: v => "valid function",
+                                       Invalid: e => "invalid function");
+
+            Assert.AreEqual("invalid function", result);
+        }
+
+        [TestMethod]
+        public async Task When_creating_a_valid_awaitable_entity_then_the_async_map_fires_the_valid_function()
+        {
+            var sut = Task.FromResult(Entity<int>.Valid(0));
+
+            var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+                                    .Match(
+                                       Valid: v => "valid function",
+                                       Invalid: e => "invalid function");
+
+            Assert.AreEqual("valid function", result);
+        }
+
+        [TestMethod]
+        public async Task When_creating_an_invalid_awaitable_entity_then_the_async_map_fires_the_invalid_function()
+        {
+            var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
+
+            var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+                                    .Match(
+                                       Valid: v => "valid function",
+                                       Invalid: e => "invalid function");
+
+            Assert.AreEqual("invalid function", result);
+        }
+
+        [TestMethod]
         public void When_creating_a_valid_entity_then_bind_fires_the_valid_function()
         {
             var sut = Entity<int>.Valid(0);
@@ -240,7 +292,7 @@
         }
 
         [TestMethod]
-        public async Task WhenCreatingAnValidEntity_ThenTheAwaitableFunctionParameterizedAsyncBindFiresTheValidFunction()
+        public async Task When_creating_a_valid_entity_then_the_awaitable_function_parameterized_async_bind_fires_the_valid_function()
         {
             var sut = Entity<int>.Valid(0);
 
@@ -253,7 +305,7 @@
         }
 
         [TestMethod]
-        public async Task WhenCreatingAValidEntity_ThenAwaitableFunctionParameterizedAwaitableBindFiresTheValidFunction()
+        public async Task When_creating_a_valid_entity_then_awaitable_function_parameterized_awaitable_bind_fires_the_valid_function()
         {
             var sut = Entity<int>.Valid(0);
 
@@ -266,7 +318,7 @@
         }
 
         [TestMethod]
-        public async Task WhenCreatingAInvalidEntity_ThenAwaitableFunctionParameterizedAwaitableBindFiresTheInvalidFunction()
+        public async Task When_creating_an_invalid_entity_then_awaitable_function_parameterized_awaitable_bind_fires_the_invalid_function()
         {
             var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
@@ -280,7 +332,7 @@
 
 
         [TestMethod]
-        public async Task WhenCreatingAnInvalidEntity_ThenTheFunctionParameterizedAsyncBindFiresTheInvalidFunction()
+        public async Task When_creating_an_invalid_entity_then_the_function_parameterized_async_bind_fires_the_invalid_function()
         {
             var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 

@@ -13,7 +13,7 @@ They are very useful for chaining operations thus improving the reliability and 
 Before using this library, I recommend you to read my series of articles [here](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
 
 # Read the test project!
-If you need more examples than those below to use the library, have a look at the test project: `Grenat.Functional.DDD.Tests`.
+If you need more examples than those below to use the library, have a look at the test project and the Samples directory.
 
 # `Option<T>`
 Use it to model the presence or absence of data, instead of using `null`.
@@ -160,8 +160,9 @@ Like `Option<T>`, a `Bind` function has been defined to chain functions :
 var result = Quantity.Create(10, "Liters")
 			.Bind((q) => q.Add(10))
 			.Bind((q) => q.Add(30))
-			.Match(Valid: v => new { value = v.Value, errors = Enumerable.Empty<Error>()},
-					Invalid: e => new { value = 0, errors = e});
+			.Match(
+                Valid: v => new { value = v.Value, errors = Enumerable.Empty<Error>()},
+                Invalid: e => new { value = 0, errors = e});
 					
 Console.WriteLine(result.value); // 50
 ```
@@ -175,8 +176,9 @@ var result = Quantity.Create(10, "Liters")
             .Bind((q) => q.Add(10))
             .Bind((q) => q.Add(100))
             .Bind((q) => q.Add(10))
-            .Match(Valid: v => new { Value = v.Value, Errors = Enumerable.Empty<Error>()},
-                    Invalid: e => new { Value = 0, Errors = e});
+            .Match(
+                Valid: v => new { Value = v.Value, Errors = Enumerable.Empty<Error>()},
+                Invalid: e => new { Value = 0, Errors = e});
 
 // Back to the normal world : handle the result
 if (result.Errors.Count() > 0)
@@ -286,7 +288,7 @@ public record Identifier
     public static ValueObject<Identifier> Create(string identifier)
     {
         if (string.IsNullOrEmpty(identifier))
-        	return new Error("An identifier cannot be null or empty.");
+            return new Error("An identifier cannot be null or empty.");
 		
 		return new Identifier(identifier);
     }
@@ -322,9 +324,9 @@ Let's create a cart by setting invalid data and let's see the errors harvesting 
 
 ```C#
 var cart = Cart.Create()
-			.SetValueObject(Identifier.Create(null), (cart, identifier) => cart with { Id = identifier })
-			.SetValueObject(Amount.Create(-1), (cart, totalAmount) => cart with { TotalAmount = totalAmount })
-			.SetValueObject(Amount.Create(3000), (cart, totalAmountWithTax) => cart with { TotalAmountWithTax = totalAmountWithTax });
+    .SetValueObject(Identifier.Create(null), (cart, identifier) => cart with { Id = identifier })
+    .SetValueObject(Amount.Create(-1), (cart, totalAmount) => cart with { TotalAmount = totalAmount })
+    .SetValueObject(Amount.Create(3000), (cart, totalAmountWithTax) => cart with { TotalAmountWithTax = totalAmountWithTax });
 			
 Console.WriteLine(cart.Errors);
 // Output :
@@ -386,9 +388,86 @@ public static class CartBuilder
 Now we can write the following:
 ```C#
 var cart = Cart.CreateEmpty()
-	         .WithId("1ds3d!bM")
-	         .WithItem(Item.CreateEmpty()
-			 				.WithId("45xxsDg1=")
-							.WithProductId("ne252TJqAWk3")
-							.WithAmount(25));
+    .WithId("1ds3d!bM")
+    .WithItem(Item.CreateEmpty()
+        .WithId("45xxsDg1=")
+        .WithProductId("ne252TJqAWk3")
+        .WithAmount(25));
 ```
+
+# The application layer
+
+## Using `Entity<T>`, `Map()` and `Bind()`
+
+You can write an application layer in a functional style like this:
+```C#
+public static OperationResultDto<ProductDto> AddProduct(
+    AddProductDto addProductDto,
+    Func<string, int> CountProductReferences
+    Func<Product, Product> SaveProduct)
+{
+    var p = addProductDto.ToProductEntity()
+        .Bind(VerifyProductReference, CountProductReferences(addProductDto.Reference))
+        .Map(SaveProduct);
+
+    return p.Match(
+        Valid: (v) => new OperationResultDto<ProductDto>(v.ToProductDto()),
+        Invalid: (e) => new OperationResultDto<ProductDto>(e)
+    );
+}
+```
+
+## Dealing with asynchrony
+
+### `AsyncFunc<T>`
+
+ I added `AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As a result :
+
+- `Func<Task<T>>` is equivalent to `AsyncFunc<T>`.
+- `Func<T, Task<R>>` is equivalent to `AsyncFunc<T, R>`.
+
+### `BindAsync()`, `MapAsync()`
+
+Grenat.Functional.DDD contains asynchronous versions of `Bind()` and `Map()` : `BindAsync()` and `MapAsync()`. Here is an asynchronous version of the previous code:
+
+```C#
+public static async Task<OperationResultDto<ProductDto>> AddProduct(
+    AddProductDto addProductDto,
+    AsyncFunc<string, int> CountProductReferences,
+    AsyncFunc<Product, Product> SaveProduct)
+{
+    var p = await addProductDto.ToProductEntity()
+        .BindAsync(VerifyProductReference, () => CountProductReferences(addProductDto.Reference))
+        .MapAsync(SaveProduct);
+
+    return p.Match(
+        Valid: (v) => new OperationResultDto<ProductDto>(v.ToProductDto()),
+        Invalid: (e) => new OperationResultDto<ProductDto>(e)
+    );
+}
+```
+
+## Calling from an ASP.Net Core controller
+
+The code to call `AddProduct()` can look like this:
+
+```C#
+[HttpPost]
+public async Task<ActionResult> AddProduct(AddProductDto addProductDto)
+{
+    var response = await CatalogOperations.AddProduct(
+         addProductDto,
+         _productRepository.CountExistingProductReferences,
+         _productRepository.AddProduct);
+
+    if (response.Success)
+        return Ok(response.Data);
+    else
+        return UnprocessableEntity(response.Errors);
+}
+```
+
+## More information about a functional application layer
+
+I suggest you read this [post](https://grenat.hashnode.dev/functional-ddd-with-c-part-6-the-application-layer) on my blog.
+

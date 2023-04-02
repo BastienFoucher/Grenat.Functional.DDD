@@ -3,12 +3,16 @@
     public record Error
     {
         public string Message { get; }
+        public string Code { get; }
         public string TypeName { get; }
 
-        public Error(string message)
+        public Error(string message) : this(message, string.Empty) { }
+
+        public Error(string message, string code)
         {
             Message = message;
-            TypeName = this.GetType().Name;
+            TypeName = GetType().Name;
+            Code = code;
         }
     }
 }

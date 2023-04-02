@@ -51,6 +51,22 @@
                 Invalid: (err) => Entity<R>.Invalid(err));
         }
 
+        public static Task<Entity<R>> MapAsync<T, R>(this Entity<T> Entity, AsyncFunc<T, R> func)
+        {
+            return Entity.Match(
+                Valid: async (value) => Entity<R>.Valid(await func(value)),
+                Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static async Task<Entity<R>> MapAsync<T, R>(this Task<Entity<T>> entityTask, AsyncFunc<T, R> func)
+        {
+            var entity = await entityTask;
+
+            return await entity.Match(
+                Valid: async (value) => Entity<R>.Valid(await func(value)),
+                Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
+        }
+
         public static Entity<R> Bind<T, R>(this Entity<T> entity, Func<T, Entity<R>> func)
         {
             return entity.Match(
