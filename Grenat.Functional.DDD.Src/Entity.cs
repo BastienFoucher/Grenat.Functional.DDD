@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD
+﻿using System.Collections.Immutable;
+
+namespace Grenat.Functional.DDD
 {
     public class Entity<T>
     {
@@ -44,6 +46,106 @@
                                     Invalid: e => parentEntity));
         }
 
+        public static Entity<T> SetEntityList<T, E>(this Entity<T> parentEntity, ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
+        {
+            var validValues = ImmutableList<E>.Empty;
+            var errors = new List<Error>();
+
+            foreach (var entity in entities)
+            {
+                if (entity.IsValid)
+                {
+                    validValues = validValues.Add(
+                        entity.Match(
+                            Valid: v => v,
+                            Invalid: e => default!
+                        ));
+                }
+                else
+                {
+                    errors.AddRange(
+                        entity.Match(
+                            Valid: v => default!,
+                            Invalid: e => e)
+                    );
+                }
+            }
+
+            if (errors.Count > 0) return Entity<T>.Invalid(errors);
+            else
+            {
+                return parentEntity.Match(
+                    Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
+                    Valid: v => Entity<T>.Valid(setter(v, validValues)));
+            }
+        }
+
+        public static Entity<T> SetEntityDictionary<T, E, K>(this Entity<T> parentEntity,
+            ImmutableDictionary<K, Entity<E>> entities,
+            Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        {
+            var validValues = ImmutableDictionary<K, E>.Empty;
+            var errors = new List<Error>();
+
+            foreach (var entity in entities)
+            {
+                if (entity.Value.IsValid)
+                {
+                    validValues = validValues.Add(entity.Key,
+                        entity.Value.Match(
+                            Valid: v => v,
+                            Invalid: e => default!
+                        ));
+                }
+                else
+                {
+                    errors.AddRange(
+                        entity.Value.Match(
+                            Valid: v => default!,
+                            Invalid: e => e)
+                    );
+                }
+            }
+
+            if (errors.Count > 0) return Entity<T>.Invalid(errors);
+            else
+            {
+                return parentEntity.Match(
+                    Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
+                    Valid: v => Entity<T>.Valid(setter(v, validValues)));
+            }
+        }
+
+        public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity, ValueObject<V> valueObject, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+        {
+            return valueObject.Match(
+                Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
+                Valid: v => parentEntity.Match(
+                                    Valid: t =>
+                                    {
+                                        if (predicate(v))
+                                            return Entity<T>.Valid(setter(t, Some(v)));
+                                        else
+                                            return Entity<T>.Valid(setter(t, None<V>()));
+                                    },
+                                    Invalid: e => parentEntity));
+        }
+
+        public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity, Entity<V> entity, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+        {
+            return entity.Match(
+                Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
+                Valid: v => parentEntity.Match(
+                                    Valid: t =>
+                                    {
+                                        if (predicate(v))
+                                            return Entity<T>.Valid(setter(t, Some(v)));
+                                        else
+                                            return Entity<T>.Valid(setter(t, None<V>()));
+                                    },
+                                    Invalid: e => parentEntity));
+        }
+
         public static Entity<R> Map<T, R>(this Entity<T> Entity, Func<T, R> func)
         {
             return Entity.Match(
@@ -51,9 +153,44 @@
                 Invalid: (err) => Entity<R>.Invalid(err));
         }
 
-        public static Task<Entity<R>> MapAsync<T, R>(this Entity<T> Entity, AsyncFunc<T, R> func)
+        public static Entity<T> Map<T>(this Entity<T> entity, Action<T> action)
         {
-            return Entity.Match(
+            return entity.Match(
+                Valid: (value) =>
+                {
+                    action(value);
+                    return entity;
+                },
+                Invalid: (err) => Entity<T>.Invalid(err));
+        }
+
+        public static Task<Entity<T>> MapAsync<T>(this Entity<T> entity, AsyncAction<T> action)
+        {
+            return entity.Match(
+                Valid: async (value) =>
+                {
+                    await action(value);
+                    return await Task.FromResult(entity);
+                },
+                Invalid: async (err) => Entity<T>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static async Task<Entity<T>> MapAsync<T>(this Task<Entity<T>> entityTask, AsyncAction<T> action)
+        {
+            var entity = await entityTask;
+
+            return await entity.Match(
+                Valid: async (value) =>
+                {
+                    await action(value);
+                    return await Task.FromResult(entity);
+                },
+                Invalid: async (err) => Entity<T>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static Task<Entity<R>> MapAsync<T, R>(this Entity<T> entity, AsyncFunc<T, R> func)
+        {
+            return entity.Match(
                 Valid: async (value) => Entity<R>.Valid(await func(value)),
                 Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
         }
@@ -64,6 +201,47 @@
 
             return await entity.Match(
                 Valid: async (value) => Entity<R>.Valid(await func(value)),
+                Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static async Task<Entity<R>> MapParallel<T, R>(this Entity<T> entity,
+            IEnumerable<AsyncFunc<T, Entity<R>>> funcs,
+            Func<List<R>, R> aggregationFunc)
+        {
+            var resultingEntities = new List<Entity<R>>();
+            var resultingValues = new List<R>();
+            var errors = new List<Error>();
+
+            return await entity.Match(
+                Valid: async (value) =>
+                {
+                    var tasks = new List<Task<Entity<R>>>();
+                    foreach (var func in funcs) tasks.Add(func(value));
+
+                    await Task.WhenAll(tasks);
+
+                    foreach (var task in tasks) resultingEntities.Add(await task);
+
+                    foreach (var entity in resultingEntities)
+                    {
+                        entity.Match(
+                            Invalid: e =>
+                            {
+                                errors.AddRange(e);
+                                return resultingValues;
+                            },
+                            Valid: v =>
+                            {
+                                resultingValues.Add(v);
+                                return resultingValues;
+                            });
+                    }
+
+                    if (errors.Any()) return Entity<R>.Invalid(errors);
+                    else
+                        return await Task.FromResult(Entity<R>.Valid(aggregationFunc(resultingValues)));
+
+                },
                 Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
         }
 

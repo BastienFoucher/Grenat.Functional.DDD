@@ -1,5 +1,5 @@
 # Grenat.Functional.DDD
-A set of C# monads for C# DDD-style programs :
+A set of C# containers for C# DDD-style programs :
 
 ````C#
 Option<T>
@@ -7,12 +7,15 @@ ValueObject<T>
 Entity<T>
 ````
 
-They are very useful for chaining operations thus improving the reliability and lisibility of our DDD-style C# programs.
+The goals of this lightweight library are as follow:
+- Dealing with asynchrony, concurrency and parallelism (in progress!) challenges with very few and clear code thanks to the functional programming principles. 
+- Writing very thin application and infrastructure layers thus maximizing the proportion of code written in the domain layer.
+- Chaining operations thus improving the reliability and lisibility of our DDD-style C# programs.
 
 # Article series
 Before using this library, I recommend you to read my series of articles [here](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
 
-# Read the test project!
+# Read the samples!
 If you need more examples than those below to use the library, have a look at the test project and the Samples directory.
 
 # `Option<T>`
@@ -20,7 +23,7 @@ Use it to model the presence or absence of data, instead of using `null`.
 
 ## Usage
 
-### Elevating a value to Option<T>
+### Elevating a value to `Option<T>`
 
 ````C#
 //define some value
@@ -29,8 +32,8 @@ Option<string> someString = Some("foo");
 Option<string> none = None<string>();
 ````
 
-### Leaving Option<T> and get the inner value
-Use `Match` to get the inner value of an Option<T> container.
+### Leaving the world of `Option<T>` and getting its inner value
+Use `Match` to get the inner value of an `Option<T>` container.
 
 ````C#
 private string GetOptionValue<T>(Option<T> value)
@@ -41,7 +44,7 @@ private string GetOptionValue<T>(Option<T> value)
 }
 ````
 
-### Mapping a function on Option<T>
+### Mapping a function on `Option<T>`
 
 `Map` function is the same operator than `Select` in LINQ. It applies a function `Func<T,R>` to the inner value of `Option<T>` to transform its content.
 
@@ -108,8 +111,10 @@ public void When_binding_three_AddOne_functions_on_Some_zero_value_then_the_resu
 
 - **An invalid state**: the inner value of `ValueObject<T>` is unaccessible and only the error causing this invalid state is available.
 
+## Construction
+Make the object constructor **private** and create a public static constructor that returns a `ValueObject<T>`. 
 
-To benefit of it, you will need to create an static constructor for the inner class :
+**This is important to enjoy the benefits of this library and functional programming style.**
 
 ```C#
 // Make standard constructor private
@@ -136,7 +141,7 @@ public static ValueObject<Quantity> Create(int quantity)
 }
 ```
 
-### Getting the inner value of `ValueObject<T>` with Match
+## Getting the inner value of `ValueObject<T>` with Match
 Like `Option<T>`, you need to use the `Match` function. Because a `ValueObject<T>` has two states, one valid and one invalid, use `Match` to retrieve the inner value by providing it two functions: 
 
 - **One for the valid state**. The inner value of the `ValueObject<T>` will be injected into it.
@@ -174,7 +179,7 @@ Here is an example on how to use it.
 ```C#
 var result = Quantity.Create(10, "Liters")
             .Bind((q) => q.Add(10))
-            .Bind((q) => q.Add(100))
+            .Bind((q) => q.Add(100000)) //invalid
             .Bind((q) => q.Add(10))
             .Match(
                 Valid: v => new { Value = v.Value, Errors = Enumerable.Empty<Error>()},
@@ -198,9 +203,35 @@ else {
 
 - **An invalid state**: the inner value of `Entity<T>` is unaccessible and only the errors causing this invalid state is available.
 
-## The problem of container composition
+## Construction
+Like `ValueObject<T>`, make the object constructor **private** and create a public static constructor that returns an `Entity<T>`. 
 
-Value objects should be containerized in a `ValueObject<T>` container. They also should be containerized in an `Entity<T>` container. But we face the problem of a container containing other containers, i.e. an `Entity<T>` containing some `ValueObject<T>` or some `Entity<T>`. This is not very convenient when we write code using the data of these containers.
+**This is important to enjoy the benefits of the library and functional programming style.**
+
+```C#
+public record Item 
+{
+	public Identifier Id { get; init; }
+	public Identifier ProductId { get; init; }
+	public Amount Amount { get; init; }
+      
+	private Item()
+	{
+	    Id = new Identifier();
+		ProductId = new Identifier();
+		Amount = new Amount();
+	}
+
+	public static Entity<Item> Create(string id, string productId, int amount)
+	{
+        /* ... */
+	}
+}
+```
+
+## The challenges of container composition and immutability
+
+Value objects will be created and containerized in a `ValueObject<T>` container thanks to their static constructor (see above). And they will be themselves containerized in a parent `Entity<T>` container. But we face the problem of a container containing other containers, i.e. an `Entity<T>` containing some `ValueObject<T>` or some `Entity<T>`. This is not very convenient.
 
 For example, because the following `Cart` object should be constructed as an `Entity<Cart>` (see further), we don't want to write this:
 
@@ -228,15 +259,30 @@ public record Cart
 }
 ```
 
-To solve this problem, I added two functions in my library Grenat.Functional.DDD:
+What's more, whenever we need to change an entity's property, we have to recreate a new instance of it **to preserve immutability**.
 
+To solve these problems, this library contains some setters:
 * `SetValueObject`
 * `SetEntity`
+* `SetEntityList`
+* `SetEntityDictionary`
+* `SetEntityOption`
+* `SetValueObjectOption`
+
+
+Behind the scenes, these setters :
+1. Unwrap the inner value of the `Entity<T>` to modify. Then :
+2. Unwrap the inner value of the container (an `Entity<V>`, a `ValueObject<V>`, an `Option<V>`, ...) that is passed as a parameter,
+3. They modify the targeted property of `Entity<T>` thanks the setter function,
+4. And they wrap the result in an new instance of `Entity<T>`. 
+
+If one of the `Entity` or `ValueObject` parameter is invalid, then the resulting `Entity<T>` will become invalid too.
+ Finally, `Error`s are harvested into this resulting entity.
     
 
 ### SetValueObject
 
-Here is the function's signature :
+Here is the function's signature:
 
 ```C#
 public static Entity<T> SetValueObject<T, V>(this Entity<T> entity, ValueObject<V> valueObject, Func<T, V, T> setter) { /*...*/ }
@@ -244,7 +290,7 @@ public static Entity<T> SetValueObject<T, V>(this Entity<T> entity, ValueObject<
 
 It takes as arguments:
 
-* The entity
+* The entity update.
 * The value object to set into the entity.
 * A setter function.
     
@@ -258,8 +304,6 @@ public static Entity<Cart> SetTotalAmount(this Entity<Cart> cart, ValueObject<Am
 }
 ```
 
-Behind the scenes, `SetValueObject` unwraps the inner value object, unwraps the entity, sets the value object in the entity with the setter function, and wraps the result in an `Entity<T>`. Of course, if the `ValueObject<T>` parameter is invalid, then the resulting `Entity<T>` will become invalid too.
-
 ### SetEntity
 
 `SetEntity` is the same as `SetValueObject` but instead of accepting a `ValueObject<T>` as a parameter, it accepts an `Entity<T>`. Here is its signature:
@@ -268,9 +312,73 @@ Behind the scenes, `SetValueObject` unwraps the inner value object, unwraps the 
 public static Entity<T> SetEntity<T, E>(this Entity<T> parentEntity, Entity<E> entity, Func<T, E, T> setter) { /* ... */ }
 ```
 
+### SetEntityCollection, SetEntityDictionary
+
+As their name suggests, these setters do the same than the previous ones, but for immutable collections and immutable dictionaries.
+
+Here are their signatures:
+
+```C#
+public static Entity<T> SetEntityList<T, E>(
+    this Entity<T> parentEntity, 
+    ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter) { /* ... */ }
+
+public static Entity<T> SetEntityDictionary<T, E, K>(
+    this Entity<T> parentEntity, 
+    ImmutableDictionary<K, Entity<E>> entities, 
+    Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull { /* ... */ }
+```
+
+### SetEntityOption
+
+Use this function to set a property of an `Entity<T>` that contains an `Option<V>`, i.e:
+
+```C#
+public record TestEntity
+{
+    public readonly int Value = 0;
+
+    private TestEntity(int value)
+    {
+        Value = value;
+    }
+
+    public static Entity<TestEntity> Create(int value)
+    {
+        return Entity<TestEntity>.Valid(new TestEntity(value));
+    }
+}
+
+public record ContainerEntity
+{
+    public Option<TestEntity> TestEntityOption { get; set; }
+
+    /* ... */
+}
+```
+
+The signature of this Setter is as follow:
+```C#
+public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity, Entity<V> entity, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+```
+
+If the predicate is not verified, then the value Option<V> will be `None`. Else it will contain `Some`.
+
+Use it like this:
+```C#
+var testEntity = TestEntity.Create(0);
+
+var containerEntity = ContainerEntity.Create();
+containerEntity = containerEntity.SetEntityOption(entity, v => v.Value >= 1, static (e, v) => e with { TestEntityOption = v });
+```
+
+### SetValueObjectOption
+
+This function has the same behaviour than `SetEntityOption` but for objects that are embedded in a `ValueObject<T>` container.
+
 ### Error harvesting
 
-Both `SetValueObject` and `SetEntity` functions perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
+All these setters perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
 
 Here is an `Identifier` value object:
 
@@ -337,62 +445,85 @@ Console.WriteLine(cart.Errors);
 
 ## The problem of constructors
 
-Implementing immutability means using constructors a lot: for instance, if you need to modify just one field of an entity, you need to recreate a copy of the entity by calling a constructor. This is not practical: an entity with 6 fields requires a constructor with 6 parameters which is a lot. Moreover, some parameters could not be known depending on the call context. This would require creating several constructors or creating optional parameters.
+An entity with 6 fields requires a constructor with 6 parameters which is a lot. Moreover, some parameters could not be known depending on the call context. This would require creating several constructors or creating optional parameters.
 
-To avoid multiplying the constructors, we will take inspiration from the builder pattern. A working implementation might look like this:
-
-1. Create a static constructor returning an empty Entity.
-    
-2. Create setters returning a new instance of the Entity, using the `SetValueObject` or `SetEntity` functions we have just seen.
-    
-
-Let's first create an empty `Entity<Cart>`. In the `CreateEntity` function below, Grenat.Functional.DDD will automatically wrap the `Cart` object in a valid `Entity<Cart>` thanks to an implicit operator.
+To avoid multiplying the constructors, we will take inspiration from the builder pattern. Here is what I want to write to create a cart item. 
 
 ```C#
-public record Cart
-{
-    public Identifier Id { get; init; }
-    public ImmutableList<Item> Items { get; init; }
-    public Amount TotalAmount { get; init; }
-
-    private Cart()
-    {
-        Id = new Identifier();
-        Items = ImmutableList.Create<Item>();
-        TotalAmount = new Amount();
-    }
-
-    public static Entity<Cart> CreateEmpty()
-    {
-        return new Cart();
-    }
-}
+var cartItem = new CartItemBuilder()
+	.WithId("45xxsDg1=")
+	.WithProductId("ne252TJqAWk3")
+	.WithAmount(25)
+	.Build();
 ```
 
-Now, we just have to write construction methods thanks to the `SetValueObject` function we saw before:
-```C#
-public static class CartBuilder
+How to do that? First, let's create the CartItem Entity :
+
+```csharp
+public record Item 
 {
-	public static Entity<Cart> WithId(this Entity<Cart> cart, string id) 
+	public Identifier Id { get; init; }
+	public Identifier ProductId { get; init; }
+	public Amount Amount { get; init; }
+      
+	private Item()
 	{
-		return cart.SetValueObject(Identifier.Create(id), (cart, identifier) => cart with { Id = identifier });
+	    Id = new Identifier();
+		ProductId = new Identifier();
+		Amount = new Amount();
 	}
-	/* ... */
-	public static Entity<Cart> WithItem(this Entity<Cart> cart, Entity<Item> item) 
+
+	public static Entity<Item> Create(string id, string productId, int amount)
 	{
-		return cart.SetEntity(item, (cart, item) => cart with { Items = cart.Items.Add(item) });
+		/* Add some verifications here if needed by returning an Error 
+		 * which will be automatically converted in an invalid Entity.
+		 * Eg: return new Error("Error !!")
+		 */
+
+	    return Entity<Item>.Valid(new Item())
+			.SetId(id)
+			.SetProductId(productId)
+			.SetAmount(amount);
 	}
 }
 ```
 
-Now we can write the following:
+Fore more clarity, let's create some setters:
 ```C#
-var cart = Cart.CreateEmpty()
-    .WithId("1ds3d!bM")
-    .WithItem(Item.CreateEmpty()
-        .WithId("45xxsDg1=")
-        .WithProductId("ne252TJqAWk3")
-        .WithAmount(25));
+public static class ItemSetters 
+{
+      public static Entity<Item> SetId(this Entity<Item> item, string id) 
+      {
+            return item.SetValueObject(Identifier.Create(id), (item, identifier) => item with { Id = identifier });
+      }
+      
+      public static Entity<Item> SetProductId(this Entity<Item> item, string productId) 
+      {
+            return item.SetValueObject(Identifier.Create(productId), (item, productId) => item with { ProductId = productId });
+      }
+      
+      public static Entity<Item> SetAmount(this Entity<Item> item, int amount) 
+      {
+            return item.SetValueObject(Amount.Create(amount), (item, amount) => item with { Amount = amount });
+      }
+}
+```
+
+Finally, let's create the builder:
+
+```csharp
+public record ItemBuilder
+{
+	private string _id { get; set; }
+	private string _productId { get; set; }
+	private int _amount { get; set; }
+	
+	public ItemBuilder WithId(string id) { _id = id; return this; }
+	public ItemBuilder WithProductId(string productId) { _productId = productId; return this; }
+	public ItemBuilder WithAmount(int amount) { _amount = amount; return this; }
+
+	public Entity<Item> Build() => Item.Create(_id, _productId, _amount);
+}
 ```
 
 # The application layer
@@ -417,14 +548,40 @@ public static OperationResultDto<ProductDto> AddProduct(
 }
 ```
 
+## Mapping an action on `Entity<T>`
+
+Sometimes you may need to call an action on the inner value of `Entity<T>` in an application layer pipeline for example. In that case, `Map()` will apply the action on the value and  will return the original `Entity<T>` after that.
+
+Let's say you need to send a message after an operation:
+```C#
+public static OperationResultDto<ProductDto> AddProduct(
+    AddProductDto addProductDto,
+    Func<Product, Product> SaveProduct
+    Action<Product> ProductAddedMessage)
+{
+    var p = addProductDto.ToProductEntity()
+        .Map(SaveProduct)
+        .Map(ProductAddedMessage);
+
+    return p.Match(
+        Valid: (v) => new OperationResultDto<ProductDto>(v.ToProductDto()),
+        Invalid: (e) => new OperationResultDto<ProductDto>(e)
+    );
+}
+```
+
 ## Dealing with asynchrony
 
 ### `AsyncFunc<T>`
 
- I added `AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As a result :
+I added `AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As a result :
 
 - `Func<Task<T>>` is equivalent to `AsyncFunc<T>`.
 - `Func<T, Task<R>>` is equivalent to `AsyncFunc<T, R>`.
+
+### `AsyncAction<T>`
+
+Like `AsyncFunc<T>` an `AsyncAction<T>` delegate have been added.
 
 ### `BindAsync()`, `MapAsync()`
 

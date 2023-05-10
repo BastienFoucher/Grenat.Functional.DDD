@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Runtime.CompilerServices;
 
 namespace Grenat.Functional.DDD
 {
@@ -11,3 +7,4 @@ namespace Grenat.Functional.DDD
     public delegate Task<R> AsyncFunc<T1, T2, R>(T1 arg1, T2 arg2);
     public delegate Task<R> AsyncFunc<T1, T2, T3, R>(T1 arg1, T2 arg2, T3 arg);
 }
+
