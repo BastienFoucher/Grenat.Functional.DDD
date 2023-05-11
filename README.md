@@ -106,6 +106,27 @@ public void When_binding_three_AddOne_functions_on_Some_zero_value_then_the_resu
 }
 ````
 
+# Errors
+This library contains an `Error` data structure to avoid the use of exceptions for domain problems.
+
+```C#
+public record Error
+{
+    public string Message { get; }
+    public string Code { get; }
+    public string TypeName { get; }
+
+    public Error(string message) : this(message, string.Empty) { }
+
+    public Error(string message, string code)
+    {
+        Message = message;
+        TypeName = GetType().Name;
+        Code = code;
+    }
+}
+```
+
 # `ValueObject<T>`
 `ValueObject<T>` is a container for DDD value objects.
 
@@ -113,15 +134,33 @@ public void When_binding_three_AddOne_functions_on_Some_zero_value_then_the_resu
 `ValueObject<T>` is a two states container:
 
 - **A valid state**: the inner value of `ValueObject<T>` value is available.
-- **An invalid state**: the inner value of `ValueObject<T>` is unaccessible and only the error causing the invalid state is available.
+- **An invalid state**: the inner value of `ValueObject<T>` is unaccessible and only an `IEnumerable<Error>` causing the invalid state is available.
 
 ## Declaration and construction
+### Principles
 - Value Objects must be declared as `records` to make them immutable.
 - Make the Value Object constructor **private** and create a public static constructor that returns a `ValueObject<T>`. 
 
-**This is important to enjoy the benefits of this library and functional programming style.**
+This is important to enjoy the benefits of this library and functional programming style.
 
-Example:
+### Creation of a `ValueObject` in a valid state
+Use the Valid function:
+```C#
+ValueObject<T>.Valid(/*your value of type T*/)
+```
+
+### Creation of a `ValueObject<T>` in an invalid state
+Use the invalid function:
+```C#
+ValueObject<T>.Invalid(new Error(/*... your message and code .... */));
+```
+
+### Implicit conversions
+Implicit conversions have been added to create a `ValueObject<T>`:
+- In an invalid state from an `Error`
+- In a valid state from an object.
+
+### Example
 ```C#
 // Declaire a Value Object as a record to enforce its immutability
 public record Quantity {
@@ -210,35 +249,55 @@ It has a lot more of extension methods than value objects. You will use them for
 Like `ValueObject<T>`, `Entity<T>` is a two states container:
 
 - **A valid state**: the inner value of `Entity<T>` value is available..
-- **An invalid state**: the inner value of `Entity<T>` is unaccessible and only the errors causing this invalid state is available.
+- **An invalid state**: the inner value of `Entity<T>` is unaccessible and only an `IEnumerable<Error>` causing the invalid state is available.
 
 ## Declaration and construction
+### Principles
 Like `ValueObject<T>`:
 - Entities must be declared as `records` to make them immutable.
 - Make the Entity constructor **private** and create a public static constructor that returns an `Entity<T>`.
 
-**This is important to enjoy the benefits of the library and functional programming style.**
+This is important to enjoy the benefits of the library and functional programming style.
 
+### Creation of an `Entity<T>` in a valid state
+Use the Valid function:
 ```C#
-// Declaire an Entity as a record to enforce its immutability
-public record Item 
+Entity<T>.Valid(/*your value of type T*/)
+```
+
+### Creation of an `Entity<T>` in an invalid state
+```C#
+Entity<T>.Invalid(new Error(/* ... your message and error code ... */));
+```
+
+### Implicit conversions
+Implicit conversions have been added to create a `Entity<T>`:
+- In an invalid state from an `Error`
+- In a valid state from an object.
+
+### Example
+```C#
+// Declare an Entity as a record to enforce its immutability
+public record CartItem 
 {
     public Identifier Id { get; init; }
     public Identifier ProductId { get; init; }
-    public Amount Amount { get; init; }
       
     // Make standard constructor private
-    private Item()
+    private CartItem()
     {
         Id = new Identifier();
         ProductId = new Identifier();
-        Amount = new Amount();
     }
 
     // Create a static public constructor that will return an Entity<Item>
-    public static Entity<Item> Create(string id, string productId, int amount)
+    // See "Builder pattern" further in this file for a more complete example.
+    public static Entity<CartItem> Create(string id, string productId)
     {
-        /* ... */
+		if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(productId))
+	        return new Error("Id and ProductId cannot be null or empty.");
+
+	    return Entity<CartItem>.Valid(new CartItem());
     }
 }
 ```
@@ -285,7 +344,7 @@ For entities:
 * `SetEntityDictionary`
 * `SetEntityOption`
 
-Behind the scenes, they;
+Behind the scenes, they:
 1. Unwrap the inner value of the `Entity<T>` modify.
 2. Unwrap the inner value of the container (an `Entity<V>`, a `ValueObject<V>`, an `Option<V>`, ...) that is passed as a parameter.
 3. Modify the targeted property of the `Entity<T>` thanks the setter function.
@@ -414,7 +473,7 @@ public record Identifier
         if (string.IsNullOrEmpty(identifier))
             return new Error("An identifier cannot be null or empty.");
 		
-		return new Identifier(identifier);
+        return new Identifier(identifier);
     }
 }
 ```
@@ -424,7 +483,11 @@ Here is an `Amount` value object:
 public record Amount
 {
     public const int MAX_AMOUNT = 2500;
+    public const int DEFAULT_VALUE = 0;
+
     public readonly int Value;
+
+    public Amount() { Value = DEFAULT_VALUE; }
 
     private Amount(int value)
     {
@@ -437,9 +500,11 @@ public record Amount
             return new Error("An amount cannot be negative.");
         if (amount > MAX_AMOUNT)
             return new Error(String.Format($"An amount cannot be more than {MAX_AMOUNT}"));
-				
+                
         return new Amount(amount);
     }
+
+    public static implicit operator int(Amount amount) => amount.Value;
 }
 ```
 
@@ -510,7 +575,7 @@ I added `AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As 
 ### `AsyncAction<T>`
 Like `AsyncFunc<T>` an `AsyncAction<T>` delegate have been added.
 
-### `BindAsync()`, `MapAsync()`
+### BindAsync, MapAsync
 This library contains asynchronous versions of `Entity<T>.Bind()` and `Entity<T>.Map()`: `Entity<T>.BindAsync()` and `Entity<T>.MapAsync()`. Here is an asynchronous version of the previous code:
 
 ```C#
@@ -588,9 +653,9 @@ Assert.IsTrue(result.Errors.Count() == 2); // Errors are harvested
 ```
 
 
-# Calling the Application Layer from an ASP.Net Core controller
+## Calling the Application Layer from an ASP.Net Core controller
 
-The code to call `AddProduct()` can look like this:
+The code to call an application layer's `AddProduct()` function (see above) can look like this:
 
 ```C#
 [HttpPost]
@@ -641,7 +706,7 @@ public static class CartSetters
 
 An entity with 6 fields requires a constructor with 6 parameters which is a lot. Moreover, some parameters could not be known depending on the call context. This would require creating several constructors or creating optional parameters.
 
-To avoid multiplying the constructors, we can take inspiration from the builder pattern.
+To avoid multiplying the constructors, we can take inspiration from the builder pattern:
 
 ```C#
 var cartItem = new CartItemBuilder()
@@ -654,28 +719,27 @@ var cartItem = new CartItemBuilder()
 How to do that? First, let's create the CartItem Entity :
 
 ```csharp
-public record Item 
+public record CartItem 
 {
     public Identifier Id { get; init; }
     public Identifier ProductId { get; init; }
     public Amount Amount { get; init; }
       
-    private Item()
+    private CartItem()
 	{
         Id = new Identifier();
         ProductId = new Identifier();
         Amount = new Amount();
 	}
 
-    public static Entity<Item> Create(string id, string productId, int amount)
+    public static Entity<CartItem> Create(string id, string productId, int amount)
     {
-        /* 
-        * Add some verifications here if needed by returning an Error 
-        * which will be automatically converted in an invalid Entity.
-        * Eg: return new Error("Error !!")
-        */
+       	if (string.IsNullOrEmpty(id) && string.IsNullOrEmpty(productId))
+	        return new Error("Id and ProductId cannot be null or empty.");
 
-        return Entity<Item>.Valid(new Item())
+        // Creating an empty Entity<CartItem>, then using setters (see below) 
+        // to set the value object properties 
+        return Entity<CartItem>.Valid(new CartItem())
             .SetId(id)
             .SetProductId(productId)
             .SetAmount(amount);
@@ -685,37 +749,37 @@ public record Item
 
 Fore more clarity, let's create some setters:
 ```C#
-public static class ItemSetters 
+public static class CartItemSetters 
 {
-    public static Entity<Item> SetId(this Entity<Item> item, string id) 
+    public static Entity<CartItem> SetId(this Entity<CartItem> cartItem, string id) 
     {
-        return item.SetValueObject(Identifier.Create(id), (item, identifier) => item with { Id = identifier });
+        return cartItem.SetValueObject(Identifier.Create(id), (cartItem, identifier) => cartItem with { Id = identifier });
     }
       
-    public static Entity<Item> SetProductId(this Entity<Item> item, string productId) 
+    public static Entity<CartItem> SetProductId(this Entity<CartItem> cartItem, string productId) 
     {
-        return item.SetValueObject(Identifier.Create(productId), (item, productId) => item with { ProductId = productId });
+        return cartItem.SetValueObject(Identifier.Create(productId), (cartItem, productId) => cartItem with { ProductId = productId });
     }
       
-    public static Entity<Item> SetAmount(this Entity<Item> item, int amount) 
+    public static Entity<CartItem> SetAmount(this Entity<CartItem> cartItem, int amount) 
     {
-        return item.SetValueObject(Amount.Create(amount), (item, amount) => item with { Amount = amount });
+        return cartItem.SetValueObject(Amount.Create(amount), (cartItem, amount) => cartItem with { Amount = amount });
     }
 }
 ```
 
 Finally, let's create the builder:
 ```csharp
-public record ItemBuilder
+public record CartItemBuilder
 {
     private string _id { get; set; }
     private string _productId { get; set; }
     private int _amount { get; set; }
 	
-    public ItemBuilder WithId(string id) { _id = id; return this; }
-    public ItemBuilder WithProductId(string productId) { _productId = productId; return this; }
-    public ItemBuilder WithAmount(int amount) { _amount = amount; return this; }
+    public CartItemBuilder WithId(string id) { _id = id; return this; }
+    public CartItemBuilder WithProductId(string productId) { _productId = productId; return this; }
+    public CartItemBuilder WithAmount(int amount) { _amount = amount; return this; }
 
-    public Entity<Item> Build() => Item.Create(_id, _productId, _amount);
+    public Entity<CartItem> Build() => Item.Create(_id, _productId, _amount);
 }
 ```
