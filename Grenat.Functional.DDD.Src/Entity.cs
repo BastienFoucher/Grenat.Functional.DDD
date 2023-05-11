@@ -37,6 +37,40 @@ namespace Grenat.Functional.DDD
                                     Invalid: e => entity));
         }
 
+        public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, ImmutableList<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
+        {
+            var validValues = ImmutableList<V>.Empty;
+            var errors = new List<Error>();
+
+            foreach (var valueObject in valueObjects)
+            {
+                if (valueObject.IsValid)
+                {
+                    validValues = validValues.Add(
+                        valueObject.Match(
+                            Valid: v => v,
+                            Invalid: e => default!
+                        ));
+                }
+                else
+                {
+                    errors.AddRange(
+                        valueObject.Match(
+                            Valid: v => default!,
+                            Invalid: e => e)
+                    );
+                }
+            }
+
+            if (errors.Count > 0) return Entity<T>.Invalid(errors);
+            else
+            {
+                return parentEntity.Match(
+                    Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
+                    Valid: v => Entity<T>.Valid(setter(v, validValues)));
+            }
+        }
+
         public static Entity<T> SetEntity<T, E>(this Entity<T> parentEntity, Entity<E> entity, Func<T, E, T> setter)
         {
             return entity.Match(
@@ -205,12 +239,46 @@ namespace Grenat.Functional.DDD
         }
 
         public static async Task<Entity<R>> MapParallel<T, R>(this Entity<T> entity,
-            IEnumerable<AsyncFunc<T, Entity<R>>> funcs,
-            Func<List<R>, R> aggregationFunc)
+          IEnumerable<AsyncFunc<T, R>> funcs,
+          Func<ImmutableList<R>, R> aggregationFunc)
         {
-            var resultingEntities = new List<Entity<R>>();
-            var resultingValues = new List<R>();
-            var errors = new List<Error>();
+            var resultingValues = ImmutableList<R>.Empty;
+            var errors = ImmutableList<Error>.Empty;
+
+            return await entity.Match(
+                Valid: async (value) =>
+                {
+                    var tasks = new List<Task<R>>();
+                    foreach (var func in funcs) tasks.Add(func(value));
+
+                    await Task.WhenAll(tasks);
+
+                    foreach (var task in tasks) resultingValues = resultingValues.Add(await task);
+
+                    if (errors.Any()) return Entity<R>.Invalid(errors);
+                    else
+                        return await Task.FromResult(Entity<R>.Valid(aggregationFunc(resultingValues)));
+
+                },
+                Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static async Task<Entity<R>> MapParallel<T, R>(this Task<Entity<T>> entityTask,
+            IEnumerable<AsyncFunc<T, R>> funcs,
+            Func<ImmutableList<R>, R> aggregationFunc)
+        {
+            var entity = await entityTask;
+
+            return await MapParallel(entity, funcs, aggregationFunc);
+        }
+
+        public static async Task<Entity<R>> BindParallel<T, R>(this Entity<T> entity,
+            IEnumerable<AsyncFunc<T, Entity<R>>> funcs,
+            Func<ImmutableList<R>, R> aggregationFunc)
+        {
+            var resultingEntities = ImmutableList<Entity<R>>.Empty;
+            var resultingValues = ImmutableList<R>.Empty;
+            var errors = ImmutableList<Error>.Empty;
 
             return await entity.Match(
                 Valid: async (value) =>
@@ -220,19 +288,19 @@ namespace Grenat.Functional.DDD
 
                     await Task.WhenAll(tasks);
 
-                    foreach (var task in tasks) resultingEntities.Add(await task);
+                    foreach (var task in tasks) resultingEntities = resultingEntities.Add(await task);
 
                     foreach (var entity in resultingEntities)
                     {
                         entity.Match(
                             Invalid: e =>
                             {
-                                errors.AddRange(e);
+                                errors = errors.AddRange(e);
                                 return resultingValues;
                             },
                             Valid: v =>
                             {
-                                resultingValues.Add(v);
+                                resultingValues = resultingValues.Add(v);
                                 return resultingValues;
                             });
                     }
@@ -243,6 +311,15 @@ namespace Grenat.Functional.DDD
 
                 },
                 Invalid: async (err) => Entity<R>.Invalid(await Task.FromResult(err)));
+        }
+
+        public static async Task<Entity<R>> BindParallel<T, R>(this Task<Entity<T>> entityTask,
+                    IEnumerable<AsyncFunc<T, Entity<R>>> funcs,
+                    Func<ImmutableList<R>, R> aggregationFunc)
+        {
+            var entity = await entityTask;
+
+            return await BindParallel(entity, funcs, aggregationFunc);
         }
 
         public static Entity<R> Bind<T, R>(this Entity<T> entity, Func<T, Entity<R>> func)

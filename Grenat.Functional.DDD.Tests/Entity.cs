@@ -46,17 +46,21 @@
             public ImmutableList<TestEntity> SubEntities { get; set; }
             public ImmutableDictionary<int, TestEntity> SubEntitiesDictionary { get; set; }
             public Option<TestEntity> TestEntityOption { get; set; }
+
+            public ImmutableList<TestValueObject> ValueObjects;
             public Option<TestValueObject> TestValueObjectOption { get; set; }
 
             public ContainerEntity(ImmutableList<TestEntity> subEntities,
                 ImmutableDictionary<int, TestEntity> subEntitiesDictionary,
                 Option<TestEntity> testEntityOption,
+                ImmutableList<TestValueObject> valueObjects,
                 Option<TestValueObject> testValueObjectOption
                 )
             {
                 SubEntities = subEntities;
                 SubEntitiesDictionary = subEntitiesDictionary;
                 TestEntityOption = testEntityOption;
+                ValueObjects = valueObjects;
                 TestValueObjectOption = testValueObjectOption;
             }
 
@@ -66,8 +70,55 @@
                     ImmutableList<TestEntity>.Empty,
                     ImmutableDictionary<int, TestEntity>.Empty,
                     None<TestEntity>(),
+                    ImmutableList<TestValueObject>.Empty,
                     None<TestValueObject>()));
             }
+        }
+
+        [TestMethod]
+        public void When_setting_a_collection_of_valueobjects_in_an_entity_then_its_collection_is_updated()
+        {
+            ImmutableList<ValueObject<TestValueObject>> valueObjects = ImmutableList<ValueObject<TestValueObject>>.Empty;
+            valueObjects = valueObjects.Add(TestValueObject.Create(1));
+            valueObjects = valueObjects.Add(TestValueObject.Create(2));
+
+            var sut = ContainerEntity.Create();
+            sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+
+            Assert.IsTrue(sut.Match(
+                Invalid: e => 0,
+                Valid: v => v.ValueObjects?.Count()) == 2);
+
+        }
+
+        [TestMethod]
+        public void When_setting_a_collection_of_valueobjects_in_an_invalid_entity_then_the_entity_stays_invalid()
+        {
+            ImmutableList<ValueObject<TestValueObject>> valueObjects = ImmutableList<ValueObject<TestValueObject>>.Empty;
+            valueObjects = valueObjects.Add(TestValueObject.Create(1));
+            valueObjects = valueObjects.Add(TestValueObject.Create(2));
+
+            var sut = Entity<ContainerEntity>.Invalid(new Error("Invalid entity"));
+            sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+
+            Assert.IsFalse(sut.IsValid);
+
+        }
+
+        [TestMethod]
+        public void When_setting_a_collection_with_invalid_valueobjects_in_an_entity_then_its_collection_is_not_updated_and_errors_are_harvested()
+        {
+            ImmutableList<ValueObject<TestValueObject>> valueObjects = ImmutableList<ValueObject<TestValueObject>>.Empty;
+            valueObjects = valueObjects.Add(TestValueObject.Create(1));
+            valueObjects = valueObjects.Add(TestValueObject.Create(2));
+            valueObjects = valueObjects.Add(new Error("A first invalid entity"));
+            valueObjects = valueObjects.Add(new Error("A second invalid entity"));
+
+            var sut = ContainerEntity.Create();
+            sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+
+            Assert.IsFalse(sut.IsValid);
+            Assert.IsTrue(sut.Errors.Count() == 2);
         }
 
         [TestMethod]
@@ -78,7 +129,7 @@
             subEntities = subEntities.Add(TestEntity.Create(2));
 
             var sut = ContainerEntity.Create();
-            sut = sut.SetEntityList(subEntities, static (e, l) => e with { SubEntities = l.ToImmutableList() });
+            sut = sut.SetEntityList(subEntities, static (e, l) => e with { SubEntities = l });
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => 0,
@@ -263,11 +314,11 @@
         public async Task When_mapping_parallel_operations_on_entity_then_the_result_is_correct()
         {
             var sut = Entity<int>.Valid(5);
-            var funcs = new List<AsyncFunc<int, Entity<int>>>()
+            var funcs = new List<AsyncFunc<int, int>>()
             {
-                async (p) => await Task.FromResult(Entity<int>.Valid(p + 1)),
-                async (p) => await Task.FromResult(Entity<int>.Valid(p + 2)),
-                async (p) => await Task.FromResult(Entity<int>.Valid(p + 3))
+                async (p) => await Task.FromResult(p + 1),
+                async (p) => await Task.FromResult(p + 2),
+                async (p) => await Task.FromResult(p + 3)
             };
 
             var result = (await sut.MapParallel(funcs, (values) => values.Sum()))
@@ -278,8 +329,44 @@
             Assert.IsTrue(result == 21);
         }
 
+
         [TestMethod]
-        public async Task When_mapping_parallel_operations_on_of_which_is_an_error_on_an_entity_then_the_errors_are_harvested()
+        public async Task When_mapping_parallel_operations_an_invalid_entity_then_the_result_is_an_error()
+        {
+            var sut = Entity<int>.Invalid(new Error("Error"));
+            var funcs = new List<AsyncFunc<int, int>>()
+            {
+                async (p) => await Task.FromResult(p + 1),
+                async (p) => await Task.FromResult(p + 2),
+                async (p) => await Task.FromResult(p + 3)
+            };
+
+            var result = await sut.MapParallel(funcs, (values) => values.Sum());
+
+            Assert.IsFalse(result.IsValid);
+        }
+
+        [TestMethod]
+        public async Task When_binding_parallel_operations_on_entity_then_the_result_is_correct()
+        {
+            var sut = Entity<int>.Valid(5);
+            var funcs = new List<AsyncFunc<int, Entity<int>>>()
+            {
+                async (p) => await Task.FromResult(Entity<int>.Valid(p + 1)),
+                async (p) => await Task.FromResult(Entity<int>.Valid(p + 2)),
+                async (p) => await Task.FromResult(Entity<int>.Valid(p + 3)),
+            };
+
+            var result = (await sut.BindParallel(funcs, (values) => values.Sum()))
+                .Match(
+                    Valid: v => v,
+                    Invalid: e => 0);
+
+            Assert.IsTrue(result == 21);
+        }
+
+        [TestMethod]
+        public async Task When_binding_parallel_operations_on_of_which_is_an_error_on_an_entity_then_the_errors_are_harvested()
         {
             var sut = Entity<int>.Valid(5);
             var funcs = new List<AsyncFunc<int, Entity<int>>>()
@@ -289,13 +376,13 @@
                 async (p) => await Task.FromResult(Entity<int>.Invalid(new Error("Erreur 2")))
             };
 
-            var result = await sut.MapParallel(funcs, (values) => values.Sum());
+            var result = await sut.BindParallel(funcs, (values) => values.Sum());
 
             Assert.IsTrue(result.Errors.Count() == 2);
         }
 
         [TestMethod]
-        public async Task When_mapping_parallel_operations_an_invalid_entity_then_the_result_is_an_error()
+        public async Task When_binding_parallel_operations_an_invalid_entity_then_the_result_is_an_error()
         {
             var sut = Entity<int>.Invalid(new Error("Error"));
             var funcs = new List<AsyncFunc<int, Entity<int>>>()
@@ -305,7 +392,7 @@
                 async (p) => await Task.FromResult(Entity<int>.Valid(p + 3))
             };
 
-            var result = await sut.MapParallel(funcs, (values) => values.Sum());
+            var result = await sut.BindParallel(funcs, (values) => values.Sum());
 
             Assert.IsFalse(result.IsValid);
         }
