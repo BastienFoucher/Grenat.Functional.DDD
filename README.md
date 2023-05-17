@@ -10,6 +10,8 @@ Entity<T>
 The goals of this lightweight library are:
 - Dealing with asynchrony, concurrency and parallelism (in progress!) challenges with very few and clear code thanks to the functional programming principles. 
 - Writing very thin application and infrastructure layers to maximize the proportion of code written in the domain layer.
+- Writing very few conditional logic. A maximum of conditional logic will be handled thanks to functional thinking and operations like `Bind`, `Map`.
+- Performing error harvesting with a very little effort.
 - Chaining operations to improve the reliability and lisibility of DDD-style C# programs.
 
 # Article series
@@ -303,7 +305,7 @@ public record CartItem
 ```
 
 ## The challenges of container composition and immutability
-Value objects will be created and containerized in a `ValueObject<T>` container thanks to their static constructor (see above). But they maybe containerized in a parent `Entity<T>`. We face the problem of a container containing other containers, i.e. an `Entity<T>` containing some `ValueObject<T>` or some `Entity<T>`. This is not very convenient.
+Value objects will be created and containerized in a `ValueObject<T>` container thanks to their static constructor (see above). But they may be containerized in a parent `Entity<T>`. We face the problem of a container containing other containers, i.e. an `Entity<T>` containing some `ValueObject<T>` or some `Entity<T>`. This is not very convenient.
 
 We don't want to write this:
 
@@ -347,7 +349,7 @@ For entities:
 Behind the scenes, they:
 1. Unwrap the inner value of the `Entity<T>` modify.
 2. Unwrap the inner value of the container (an `Entity<V>`, a `ValueObject<V>`, an `Option<V>`, ...) that is passed as a parameter.
-3. Modify the targeted property of the `Entity<T>` thanks the setter function.
+3. Modify a target property of the `Entity<T>` thanks the setter function.
 4. And they wrap the result in an new instance of `Entity<T>`.
 
 If one of the `Entity` or `ValueObject` parameter is invalid, then the resulting `Entity<T>` will become invalid too.
@@ -406,7 +408,7 @@ public static Entity<T> SetEntityDictionary<T, E, K>(
 ```
 
 ### SetEntityOption
-Use this function to set a property of an `Entity<T>` that contains an `Option<V>`, i.e:
+Use these functions to set a property of an `Entity<T>` that contains an `Option<V>`, i.e:
 
 ```C#
 // First entity
@@ -434,27 +436,70 @@ public record ContainerEntity
 }
 ```
 
-Here is the signature of this setter:
+Here is the signature of these setters:
 ```C#
-public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity, Entity<V> entity, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+// 1st setter: the inner value of the entity will be injected in the predicate
+public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
+    Entity<V> entity, Func<V, bool> predicate, 
+    Func<T, Option<V>, T> setter)
+
+// 2nd setter: Entity<V> can be constructed and set in the Entity container only if the predicate is verified.
+public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
+    Func<Entity<V>> entity,
+    Func<bool> predicate,
+    Func<T, Option<V>, T> setter)
 ```
 
-If the predicate is not verified, then the inner value of `Option<V>` will be `None`. Else it will contain `Some`.
+If predicates are not verified, then `Option<V>` will be `None`. Else it will contain `Some(V)`.
 
-Use it like this:
+Use them like this:
 ```C#
-var littleEntity = LittleEntity.Create(0);
-
 var containerEntity = ContainerEntity.Create();
-// containerEntity.LittleEntityOption will be equal to None because the predicate is not verified.
-containerEntity = containerEntity.SetEntityOption(entity, v => v.Value >= 1, static (e, v) => e with { TestEntityOption = v }); 
+
+containerEntity = containerEntity.SetEntityOption(
+    () => LittleEntity.Create(0), 
+    () => false,
+    static (containerEntity, v) => containerEntity with { TestEntityOption = v }); 
+
+// 2nd setter
+// containerEntity.LittleEntityOption will be equal to None.
+containerEntity = containerEntity.SetEntityOption(
+    LittleEntity.Create(0),
+    v => v.Value >= 1,
+     static (containerEntity, v) => containerEntity with { TestEntityOption = v }); 
 ```
 
 ### SetValueObjectOption
-This function is the same than `SetEntityOption` but for Value Objects that are embedded in a `ValueObject<T>` container.
+Same than `SetEntityOption` but for Value Objects that are embedded in a `ValueObject<T>` container.
 
-### Error harvesting
-All these setters perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
+```C#
+public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity,
+    Func<ValueObject<V>> valueObject,
+    Func<bool> predicate,
+    Func<T, Option<V>, T> setter)
+```
+
+Here is an example:
+```C#
+public record CartItem
+{
+    /* See other declarations above */
+    public Option<Discount> DiscountValue { get; init; }
+
+    /* ... */
+}
+
+public static Entity<CartItem> WithDiscountValue(this Entity<CartItem> cartItem, int discountValue)
+{
+    return cartItem.SetValueObjectOption(
+        () => Discount.Create(discountValue),
+        () => discountValue > 0,
+        (cartItem, discount) => cartItem with { DiscountValue = discount });
+}
+```
+
+## Error harvesting
+All the previous setters perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
 
 Here is an `Identifier` value object:
 ```C#
@@ -567,7 +612,7 @@ public static OperationResultDto<ProductDto> AddProduct(
 ## Dealing with asynchrony
 
 ### `AsyncFunc<T>`
-I added `AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As a result :
+`AsyncFunc<T>` delegates to simplify the writing of `Func<Task<T>>`. As a result :
 
 - `Func<Task<T>>` is equivalent to `AsyncFunc<T>`.
 - `Func<T, Task<R>>` is equivalent to `AsyncFunc<T, R>`.

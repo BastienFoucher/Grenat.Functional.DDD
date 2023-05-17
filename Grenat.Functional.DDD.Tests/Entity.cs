@@ -270,44 +270,132 @@
         }
 
         [TestMethod]
-        public void When_setting_a_valueobject_option_then_the_entity_is_updated()
+        public void When_setting_a_valueobject_option_then_the_entity_is_updated_with_some()
         {
-            var valueObject = TestValueObject.Create(1);
-
             var sut = ContainerEntity.Create();
-            sut = sut.SetValueObjectOption(valueObject, v => v.Value == 1, static (e, v) => e with { TestValueObjectOption = v });
+            sut = sut.SetValueObjectOption(
+                () => TestValueObject.Create(1),
+                () => true,
+                static (e, v) => e with { TestValueObjectOption = v });
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => false,
                 Valid: v => v.TestValueObjectOption.Match(
                     None: () => false,
-                    Some: v => v.Value == 1)));
+                    Some: v => true)));
         }
 
         [TestMethod]
-        public void When_setting_an_invalid_valueobject_in_a_valueobject_option_then_the_entity_invalid()
+        public void When_setting_a_valueobject_option_then_the_entity_is_updated_with_none()
+        {
+            var sut = ContainerEntity.Create();
+            sut = sut.SetValueObjectOption(
+                () => TestValueObject.Create(1),
+                () => false,
+                static (e, v) => e with { TestValueObjectOption = v });
+
+            Assert.IsTrue(sut.Match(
+                Invalid: e => false,
+                Valid: v => v.TestValueObjectOption.Match(
+                    None: () => true,
+                    Some: v => false)));
+        }
+
+        [TestMethod]
+        public void When_setting_an_invalid_valueobject_in_a_valueobject_option_then_the_resulting_entity_invalid()
         {
             ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
 
             var sut = ContainerEntity.Create();
-            sut = sut.SetValueObjectOption(valueObject, v => v.Value == 1, static (e, v) => e with { TestValueObjectOption = v });
+            sut = sut.SetValueObjectOption(
+                () => valueObject,
+                () => true,
+                static (e, v) => e with { TestValueObjectOption = v });
 
             Assert.IsFalse(sut.Match(
                 Invalid: e => false,
                 Valid: v => true));
+
+            Assert.IsTrue(sut.Errors.Count() == 1);
         }
 
         [TestMethod]
-        public void When_setting_an_invalid_valueobject_in_a_valueobject_option_then_the_errors_are_harvested()
+        public void When_setting_a_valid_valueobject_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
         {
-            ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
-
             Entity<ContainerEntity> sut = new Error("Invalid entity");
-            sut = sut.SetValueObjectOption(valueObject, v => v.Value == 1, static (e, v) => e with { TestValueObjectOption = v });
+            sut = sut.SetValueObjectOption(
+                () => TestValueObject.Create(1),
+                () => true,
+                static (e, v) => e with { TestValueObjectOption = v });
+
+            Assert.IsFalse(sut.Match(
+                Invalid: e => false,
+                Valid: v => true));
+
+        }
+
+        public void When_setting_an_entity_option_then_the_entity_is_updated_with_some()
+        {
+            var sut = ContainerEntity.Create();
+            sut = sut.SetEntityOption(
+                () => TestEntity.Create(1),
+                () => true,
+                static (e, v) => e with { TestEntityOption = v });
 
             Assert.IsTrue(sut.Match(
-                Invalid: e => e.Count() == 2,
-                Valid: v => false));
+                Invalid: e => false,
+                Valid: v => v.TestEntityOption.Match(
+                    None: () => false,
+                    Some: v => true)));
+        }
+
+        [TestMethod]
+        public void When_setting_an_entity_option_then_the_entity_is_updated_with_none()
+        {
+            var sut = ContainerEntity.Create();
+            sut = sut.SetEntityOption(
+                () => TestEntity.Create(1),
+                () => false,
+                static (e, v) => e with { TestEntityOption = v });
+
+            Assert.IsTrue(sut.Match(
+                Invalid: e => false,
+                Valid: v => v.TestEntityOption.Match(
+                    None: () => true,
+                    Some: v => false)));
+        }
+
+        [TestMethod]
+        public void When_setting_an_invalid_entity_in_an_entity_option_then_the_resulting_entity_invalid()
+        {
+            Entity<TestEntity> entity = new Error("Invalid entity");
+
+            var sut = ContainerEntity.Create();
+            sut = sut.SetEntityOption(
+                () => entity,
+                () => true,
+                static (e, v) => e with { TestEntityOption = v });
+
+            Assert.IsFalse(sut.Match(
+                Invalid: e => false,
+                Valid: v => true));
+
+            Assert.IsTrue(sut.Errors.Count() == 1);
+        }
+
+        [TestMethod]
+        public void When_setting_a_valid_entity_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
+        {
+            Entity<ContainerEntity> sut = new Error("Invalid entity");
+            sut = sut.SetEntityOption(
+                () => TestEntity.Create(1),
+                () => true,
+                static (e, v) => e with { TestEntityOption = v });
+
+            Assert.IsFalse(sut.Match(
+                Invalid: e => false,
+                Valid: v => true));
+
         }
 
         [TestMethod]

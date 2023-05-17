@@ -150,20 +150,46 @@ namespace Grenat.Functional.DDD
             }
         }
 
-        public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity, ValueObject<V> valueObject, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+        public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity,
+            Func<ValueObject<V>> valueObject,
+            Func<bool> predicate,
+            Func<T, Option<V>, T> setter)
         {
-            return valueObject.Match(
-                Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
-                Valid: v => parentEntity.Match(
-                                    Valid: t =>
-                                    {
-                                        if (predicate(v))
-                                            return Entity<T>.Valid(setter(t, Some(v)));
-                                        else
-                                            return Entity<T>.Valid(setter(t, None<V>()));
-                                    },
-                                    Invalid: e => parentEntity));
+            return parentEntity.Match(
+                Invalid: pe => Entity<T>.Invalid(pe),
+                Valid: v =>
+                {
+                    if (predicate())
+                    {
+                        return valueObject().Match(
+                            Valid: ve => Entity<T>.Valid(setter(v, Some(ve))),
+                            Invalid: e => Entity<T>.Invalid(e));
+                    }
+                    else
+                        return Entity<T>.Valid(setter(v, None<V>()));
+                });
         }
+
+        public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
+            Func<Entity<V>> entity,
+            Func<bool> predicate,
+            Func<T, Option<V>, T> setter)
+        {
+            return parentEntity.Match(
+                Invalid: e => Entity<T>.Invalid(e),
+                Valid: v =>
+                {
+                    if (predicate())
+                    {
+                        return entity().Match(
+                            Valid: o => Entity<T>.Valid(setter(v, Some(o))),
+                            Invalid: e => Entity<T>.Invalid(e));
+                    }
+                    else
+                        return Entity<T>.Valid(setter(v, None<V>()));
+                });
+        }
+
 
         public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity, Entity<V> entity, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
         {
