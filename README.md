@@ -1,5 +1,5 @@
 # Grenat.Functional.DDD
-A set of C# functional containers for DDD-style programs :
+A set of C# functional containers I use to write DDD-style programs:
 
 ````C#
 Option<T>
@@ -7,18 +7,18 @@ ValueObject<T>
 Entity<T>
 ````
 
-The goals of this lightweight library are:
-- Dealing with asynchrony, concurrency and parallelism (in progress!) challenges with very few and clear code thanks to the functional programming principles. 
-- Writing very thin application and infrastructure layers to maximize the proportion of code written in the domain layer.
-- Writing very few conditional logic. A maximum of conditional logic will be handled thanks to functional thinking and operations like `Bind`, `Map`.
-- Performing error harvesting with a very little effort.
+This lightweight library allows you to:
+- Deal with asynchrony, concurrency and parallelism (in progress!) challenges with few and clear code thanks to the functional programming principles. 
+- Write thin application and infrastructure layers to maximize the proportion of code written in the domain layer.
+- Write few conditional logic. It will be handled thanks to functional thinking and operations like `Bind`, `Map`.
+- Perform error harvesting with a very little effort.
 - Chaining operations to improve the reliability and lisibility of DDD-style C# programs.
 
 # Article series
-Before using this library, I recommend you to read my article series [here](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
+I recommend you to read my article series [here](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
 
-# Read the samples!
-If you need more examples than those below to use the library, have a look at the [test project](https://github.com/BastienFoucher/Grenat.Functional.DDD/tree/main/Grenat.Functional.DDD.Tests) and at the [samples repository](https://github.com/BastienFoucher/Articles.Examples).
+# Read the samples
+Have a look at the [test project](https://github.com/BastienFoucher/Grenat.Functional.DDD/tree/main/Grenat.Functional.DDD.Tests) and at the [samples repository](https://github.com/BastienFoucher/Articles.Examples).
 
 # `Option<T>`
 `Option<T>` is a container to model the presence or absence of data instead of using `null`.
@@ -37,10 +37,10 @@ Option<string> none = None<string>();
 ### Leaving the world of `Option<T>` and getting its inner value
 Use `Match` to get the inner value of an `Option<T>` container. You must provide it two functions:
 
-- **One for the case where the container holds a value (Some)**. This value will be injected.
-- **One for the case where the contaniner doesn't hold a value (None)**. 
+- One for the case where the container holds a value (Some). This value will be injected.
+- One for the case where the contaniner doesn't hold a value (None). 
 
-**Important**: the returned value of provided functions must be of the same type.
+The returned value of provided functions must be of the same type.
 
 ````C#
 private string GetOptionValue<T>(Option<T> value)
@@ -408,7 +408,7 @@ public record LittleEntity
     }
 }
 
-// An other entity that contains the previous entity in an option prpoerty
+// An other entity that contains the previous entity in an option propoperty
 public record ContainerEntity
 {
     public Option<LittleEntity> LittleEntityOption { get; set; }
@@ -417,7 +417,7 @@ public record ContainerEntity
 }
 ```
 
-Use them like this following example. If predicates are not verified, then `Option<V>` will be `None`. Else it will contain `Some(V)`.
+If predicates are not verified, then `Option<V>` will be `None`, else it will contain `Some(V)`:
 
 ```C#
 var containerEntity = ContainerEntity.Create();
@@ -438,7 +438,6 @@ containerEntity = containerEntity.SetEntityOption(
 ### SetValueObjectOption
 Same than `SetEntityOption`, these setters are designed for Value Objects that are embedded in a `ValueObject<T>` container.
 
-
 ```C#
 public record CartItem
 {
@@ -456,9 +455,8 @@ public static Entity<CartItem> WithDiscountValue(this Entity<CartItem> cartItem,
         (cartItem, discount) => cartItem with { DiscountValue = discount });
 }
 ```
-
 ## Error harvesting
-All the previous setters perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
+All setters perform error harvesting. That is to say, if you try to set an invalid value object or an invalid entity, their errors are harvested and added to the ones already existing on the parent entity. It is very interesting for APIs: if the user types bad data, then all the errors will be returned.
 
 Here is an `Identifier` value object:
 ```C#
@@ -683,11 +681,12 @@ I suggest you read this [post](https://grenat.hashnode.dev/functional-ddd-with-c
 
 # Some patterns
 
+## A source code generator
+I wrote [a Roslyn code generator](https://github.com/BastienFoucher/Grenat.Functional.DDD.Generators) to automatically generate code for the following patterns.
+
 ## Creating "ubiquitous language" setters
 
-For better readability, you can create some setters using extension methods. They will call `SetValueObject`, `SetEntity`, `SetEntityList`, `SetEntityDictionary` functions under the hood.
-
-Here is an example:
+For better readability, you can create some setters using extension methods. Here is an example:
 
 ```csharp
 public static class CartSetters
