@@ -87,5 +87,33 @@
 
             Assert.AreEqual(0, result);
         }
+
+        [TestMethod]
+        public void When_creating_a_valid_value_object_the_the_mapped_function_is_fired()
+        {
+            var sut = ValueObject<int>.Valid(0);
+            var func = (int x) => x + 1;
+
+            var count = sut.Map(func);
+            var result = count.Match(
+                   Valid: v => v,
+                   Invalid: e => 0);
+
+            Assert.AreEqual(1, result);
+        }
+
+        [TestMethod]
+        public void When_creating_an_invalid_value_object_then_the_mapped_function_is_not_fired()
+        {
+            var sut = ValueObject<int>.Invalid(new Error("Invalid value object"));
+            var func = (int x) => x + 1;
+
+            var count = sut.Map(func);
+            var result = count.Match(
+                   Valid: v => v,
+                   Invalid: e => 0);
+
+            Assert.AreEqual(0, result);
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel.DataAnnotations;
 
 namespace Grenat.Functional.DDD
 {
@@ -30,6 +31,8 @@ namespace Grenat.Functional.DDD
     {
         public static Entity<T> SetValueObject<T, V>(this Entity<T> entity, ValueObject<V> valueObject, Func<T, V, T> setter)
         {
+            if (valueObject is null) return entity;
+
             return valueObject.Match(
                 Invalid: e => Entity<T>.Invalid(e.Concat(entity.Errors)),
                 Valid: v => entity.Match(
@@ -41,6 +44,8 @@ namespace Grenat.Functional.DDD
         {
             var validValues = ImmutableList<V>.Empty;
             var errors = new List<Error>();
+
+            if (valueObjects is null) valueObjects = ImmutableList<ValueObject<V>>.Empty;
 
             foreach (var valueObject in valueObjects)
             {
@@ -73,6 +78,8 @@ namespace Grenat.Functional.DDD
 
         public static Entity<T> SetEntity<T, E>(this Entity<T> parentEntity, Entity<E> entity, Func<T, E, T> setter)
         {
+            if (entity is null) return parentEntity;
+
             return entity.Match(
                 Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
                 Valid: v => parentEntity.Match(
@@ -84,6 +91,8 @@ namespace Grenat.Functional.DDD
         {
             var validValues = ImmutableList<E>.Empty;
             var errors = new List<Error>();
+
+            if (entities is null) entities = ImmutableList<Entity<E>>.Empty;
 
             foreach (var entity in entities)
             {
@@ -120,6 +129,8 @@ namespace Grenat.Functional.DDD
         {
             var validValues = ImmutableDictionary<K, E>.Empty;
             var errors = new List<Error>();
+
+            if (entities is null) entities = ImmutableDictionary<K, Entity<E>>.Empty;
 
             foreach (var entity in entities)
             {
@@ -161,12 +172,45 @@ namespace Grenat.Functional.DDD
                 {
                     if (predicate())
                     {
-                        return valueObject().Match(
-                            Valid: ve => Entity<T>.Valid(setter(v, Some(ve))),
-                            Invalid: e => Entity<T>.Invalid(e));
+                        var valueObjectResult = valueObject();
+                        if (valueObjectResult is null)
+                            return Entity<T>.Valid(setter(v, None<V>()));
+                        else
+                            return valueObject().Match(
+                                Valid: vo => Entity<T>.Valid(setter(v, Some(vo))),
+                                Invalid: e => Entity<T>.Invalid(e));
                     }
                     else
                         return Entity<T>.Valid(setter(v, None<V>()));
+                });
+        }
+
+        public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity,
+            Option<ValueObject<V>> valueObjectOption,
+            Func<T, Option<V>, T> setter)
+        {
+            return parentEntity.Match(
+                Invalid: error => Entity<T>.Invalid(error),
+                Valid: entity =>
+                {
+                    if (valueObjectOption is null)
+                        return Entity<T>.Valid(setter(entity, None<V>()));
+                    else
+                    {
+                        return valueObjectOption.Match(
+                            Some: valueObject =>
+                            {
+                                if (valueObject is null)
+                                    return Entity<T>.Valid(setter(entity, None<V>()));
+                                else
+                                {
+                                    return valueObject.Match(
+                                                    Valid: v => Entity<T>.Valid(setter(entity, Some(v))),
+                                                    Invalid: e => Entity<T>.Invalid(e));
+                                }
+                            },
+                            None: () => Entity<T>.Valid(setter(entity, None<V>())));
+                    }
                 });
         }
 
@@ -181,29 +225,72 @@ namespace Grenat.Functional.DDD
                 {
                     if (predicate())
                     {
-                        return entity().Match(
-                            Valid: o => Entity<T>.Valid(setter(v, Some(o))),
-                            Invalid: e => Entity<T>.Invalid(e));
+                        var entityResult = entity();
+                        if (entityResult is null)
+                            return Entity<T>.Valid(setter(v, None<V>()));
+                        else
+                            return entityResult.Match(
+                                Valid: en => Entity<T>.Valid(setter(v, Some(en))),
+                                Invalid: err => Entity<T>.Invalid(err));
                     }
                     else
                         return Entity<T>.Valid(setter(v, None<V>()));
                 });
         }
 
-
-        public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity, Entity<V> entity, Func<V, bool> predicate, Func<T, Option<V>, T> setter)
+        public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
+            Entity<V> entity,
+            Func<V, bool> predicate,
+            Func<T, Option<V>, T> setter)
         {
-            return entity.Match(
+            return parentEntity.Match(
                 Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
-                Valid: v => parentEntity.Match(
-                                    Valid: t =>
-                                    {
-                                        if (predicate(v))
-                                            return Entity<T>.Valid(setter(t, Some(v)));
-                                        else
-                                            return Entity<T>.Valid(setter(t, None<V>()));
-                                    },
-                                    Invalid: e => parentEntity));
+                Valid: v =>
+                {
+                    if (entity is null)
+                        return Entity<T>.Valid(setter(v, None<V>()));
+                    else
+                        return entity.Match(
+                            Valid: t =>
+                            {
+                                if (t is null)
+                                    return Entity<T>.Valid(setter(v, None<V>()));
+                                else if (predicate(t))
+                                    return Entity<T>.Valid(setter(v, Some(t)));
+                                else
+                                    return Entity<T>.Valid(setter(v, None<V>()));
+                            },
+                            Invalid: err => Entity<T>.Invalid(err));
+                });
+        }
+
+        public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
+            Option<Entity<V>> entityOption,
+            Func<T, Option<V>, T> setter)
+        {
+            return parentEntity.Match(
+                Invalid: error => Entity<T>.Invalid(error),
+                Valid: entity =>
+                {
+                    if (entityOption is null)
+                        return Entity<T>.Valid(setter(entity, None<V>()));
+                    else
+                    {
+                        return entityOption.Match(
+                            Some: value =>
+                            {
+                                if (value is null)
+                                    return Entity<T>.Valid(setter(entity, None<V>()));
+                                else
+                                {
+                                    return value.Match(
+                                        Valid: v => Entity<T>.Valid(setter(entity, Some(v))),
+                                        Invalid: e => Entity<T>.Invalid(e));
+                                }
+                            },
+                            None: () => Entity<T>.Valid(setter(entity, None<V>())));
+                    }
+                });
         }
 
         public static Entity<R> Map<T, R>(this Entity<T> Entity, Func<T, R> func)

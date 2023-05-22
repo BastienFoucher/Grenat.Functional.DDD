@@ -388,25 +388,6 @@ public static Entity<T> SetEntity<T, E>(this Entity<T> parentEntity, Entity<E> e
 ### SetValueObjectList, SetEntityList, SetEntityDictionary
 As their name suggests, these setters do the same than the previous ones, but for immutable collections and immutable dictionaries of ValueObjects or Entities.
 
-Here are their signatures:
-
-```C#
-public static Entity<T> SetValueObjectList<T, V>(
-    this Entity<T> parentEntity, 
-    ImmutableList<ValueObject<V>> valueObjects, 
-    Func<T, ImmutableList<V>, T> setter) { /* ... */ }
-
-public static Entity<T> SetEntityList<T, E>(
-    this Entity<T> parentEntity, 
-    ImmutableList<Entity<E>> entities,
-    Func<T, ImmutableList<E>, T> setter) { /* ... */ }
-
-public static Entity<T> SetEntityDictionary<T, E, K>(
-    this Entity<T> parentEntity, 
-    ImmutableDictionary<K, Entity<E>> entities, 
-    Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull { /* ... */ }
-```
-
 ### SetEntityOption
 Use these functions to set a property of an `Entity<T>` that contains an `Option<V>`, i.e:
 
@@ -436,23 +417,8 @@ public record ContainerEntity
 }
 ```
 
-Here is the signature of these setters:
-```C#
-// 1st setter: the inner value of the entity will be injected in the predicate
-public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
-    Entity<V> entity, Func<V, bool> predicate, 
-    Func<T, Option<V>, T> setter)
+Use them like this following example. If predicates are not verified, then `Option<V>` will be `None`. Else it will contain `Some(V)`.
 
-// 2nd setter: Entity<V> can be constructed and set in the Entity container only if the predicate is verified.
-public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
-    Func<Entity<V>> entity,
-    Func<bool> predicate,
-    Func<T, Option<V>, T> setter)
-```
-
-If predicates are not verified, then `Option<V>` will be `None`. Else it will contain `Some(V)`.
-
-Use them like this:
 ```C#
 var containerEntity = ContainerEntity.Create();
 
@@ -470,16 +436,9 @@ containerEntity = containerEntity.SetEntityOption(
 ```
 
 ### SetValueObjectOption
-Same than `SetEntityOption` but for Value Objects that are embedded in a `ValueObject<T>` container.
+Same than `SetEntityOption`, these setters are designed for Value Objects that are embedded in a `ValueObject<T>` container.
 
-```C#
-public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity,
-    Func<ValueObject<V>> valueObject,
-    Func<bool> predicate,
-    Func<T, Option<V>, T> setter)
-```
 
-Here is an example:
 ```C#
 public record CartItem
 {

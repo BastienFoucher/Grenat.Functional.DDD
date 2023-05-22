@@ -39,5 +39,12 @@
                 Valid: (value) => func(value),
                 Invalid: (err) => ValueObject<R>.Invalid(err));
         }
+
+        public static ValueObject<R> Map<T, R>(this ValueObject<T> valueObject, Func<T, R> func)
+        {
+            return valueObject.Match(
+                Valid: (value) => ValueObject<R>.Valid(func(value)),
+                Invalid: (err) => ValueObject<R>.Invalid(err));
+        }
     }
 }
