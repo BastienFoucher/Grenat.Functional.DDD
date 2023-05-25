@@ -18,15 +18,16 @@
 
         public static implicit operator ValueObject<T>(T t) => Valid(t);
         public static implicit operator ValueObject<T>(Error error) => Invalid(new[] { error });
+        public static implicit operator ValueObject<T>(Error[] errors) => Invalid(errors.ToArray());
 
         public Entity<T> ToEntity()
         {
             return IsValid ? Entity<T>.Valid(_value) : Entity<T>.Invalid(Errors);
         }
 
-        public R Match<R>(Func<IEnumerable<Error>, R> Invalid, Func<T, R> Valid)
+        public R Match<R>(Func<Error[], R> Invalid, Func<T, R> Valid)
         {
-            return IsValid ? Valid(_value!) : Invalid(Errors!);
+            return IsValid ? Valid(_value!) : Invalid(Errors.ToArray()!);
         }
 
     }

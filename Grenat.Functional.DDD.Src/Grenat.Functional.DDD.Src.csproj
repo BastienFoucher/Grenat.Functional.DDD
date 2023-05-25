@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Version>0.6.5</Version>
+    <Version>0.6.8</Version>
     <AssemblyVersion>$(Version).0</AssemblyVersion>
     <FileVersion>$(Version).0</FileVersion>
     <Authors>Bastien Foucher</Authors>
@@ -17,6 +17,16 @@
     <Description>A C# DDD functional library</Description>
     <PackageProjectUrl>https://github.com/BastienFoucher/Grenat.Functional.DDD</PackageProjectUrl>
     <RepositoryUrl>https://github.com/BastienFoucher/Grenat.Functional.DDD</RepositoryUrl>
+    <SignAssembly>False</SignAssembly>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

@@ -19,16 +19,23 @@ namespace Grenat.Functional.DDD
 
         public static implicit operator Entity<T>(T t) => Valid(t);
         public static implicit operator Entity<T>(Error error) => Invalid(new[] { error });
+        public static implicit operator Entity<T>(Error[] errors) => Invalid(errors.ToArray());
 
-        public R Match<R>(Func<IEnumerable<Error>, R> Invalid, Func<T, R> Valid)
+        public R Match<R>(Func<Error[], R> Invalid, Func<T, R> Valid)
         {
-            return IsValid ? Valid(_value!) : Invalid(Errors!);
+            return IsValid ? Valid(_value!) : Invalid(Errors.ToArray()!);
         }
     }
 
 
     public static class Entity
     {
+
+        public static Entity<T> SetValueObject<T, V>(this T entity, ValueObject<V> valueObject, Func<T, V, T> setter)
+        {
+            return Entity<T>.Valid(entity).SetValueObject(valueObject, setter);
+        }
+
         public static Entity<T> SetValueObject<T, V>(this Entity<T> entity, ValueObject<V> valueObject, Func<T, V, T> setter)
         {
             if (valueObject is null) return entity;
@@ -40,12 +47,17 @@ namespace Grenat.Functional.DDD
                                     Invalid: e => entity));
         }
 
+        public static Entity<T> SetValueObjectList<T, V>(this T entity, ImmutableList<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
+        {
+            return Entity<T>.Valid(entity).SetValueObjectList(valueObjects, setter);
+        }
+
         public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, ImmutableList<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
         {
             var validValues = ImmutableList<V>.Empty;
             var errors = new List<Error>();
 
-            if (valueObjects is null) valueObjects = ImmutableList<ValueObject<V>>.Empty;
+            valueObjects ??= ImmutableList<ValueObject<V>>.Empty;
 
             foreach (var valueObject in valueObjects)
             {
@@ -76,6 +88,11 @@ namespace Grenat.Functional.DDD
             }
         }
 
+        public static Entity<T> SetEntity<T, E>(this T parentEntity, Entity<E> entity, Func<T, E, T> setter)
+        {
+            return Entity<T>.Valid(parentEntity).SetEntity(entity, setter);
+        }
+
         public static Entity<T> SetEntity<T, E>(this Entity<T> parentEntity, Entity<E> entity, Func<T, E, T> setter)
         {
             if (entity is null) return parentEntity;
@@ -87,12 +104,17 @@ namespace Grenat.Functional.DDD
                                     Invalid: e => parentEntity));
         }
 
+        public static Entity<T> SetEntityList<T, E>(this T parentEntity, ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
+        {
+            return Entity<T>.Valid(parentEntity).SetEntityList(entities, setter);
+        }
+
         public static Entity<T> SetEntityList<T, E>(this Entity<T> parentEntity, ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
         {
             var validValues = ImmutableList<E>.Empty;
             var errors = new List<Error>();
 
-            if (entities is null) entities = ImmutableList<Entity<E>>.Empty;
+            entities ??= ImmutableList<Entity<E>>.Empty;
 
             foreach (var entity in entities)
             {
@@ -123,6 +145,13 @@ namespace Grenat.Functional.DDD
             }
         }
 
+        public static Entity<T> SetEntityDictionary<T, E, K>(this T parentEntity,
+            ImmutableDictionary<K, Entity<E>> entities,
+            Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        {
+            return Entity<T>.Valid(parentEntity).SetEntityDictionary(entities, setter);
+        }
+
         public static Entity<T> SetEntityDictionary<T, E, K>(this Entity<T> parentEntity,
             ImmutableDictionary<K, Entity<E>> entities,
             Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
@@ -130,7 +159,7 @@ namespace Grenat.Functional.DDD
             var validValues = ImmutableDictionary<K, E>.Empty;
             var errors = new List<Error>();
 
-            if (entities is null) entities = ImmutableDictionary<K, Entity<E>>.Empty;
+            entities ??= ImmutableDictionary<K, Entity<E>>.Empty;
 
             foreach (var entity in entities)
             {
@@ -183,6 +212,13 @@ namespace Grenat.Functional.DDD
                     else
                         return Entity<T>.Valid(setter(v, None<V>()));
                 });
+        }
+
+        public static Entity<T> SetValueObjectOption<T, V>(this T parentEntity,
+            Option<ValueObject<V>> valueObjectOption,
+            Func<T, Option<V>, T> setter)
+        {
+            return Entity<T>.Valid(parentEntity).SetValueObjectOption(valueObjectOption, setter);
         }
 
         public static Entity<T> SetValueObjectOption<T, V>(this Entity<T> parentEntity,
@@ -263,6 +299,14 @@ namespace Grenat.Functional.DDD
                             Invalid: err => Entity<T>.Invalid(err));
                 });
         }
+
+        public static Entity<T> SetEntityOption<T, V>(this T parentEntity,
+            Option<Entity<V>> entityOption,
+            Func<T, Option<V>, T> setter)
+        {
+            return Entity<T>.Valid(parentEntity).SetEntityOption(entityOption, setter);
+        }
+
 
         public static Entity<T> SetEntityOption<T, V>(this Entity<T> parentEntity,
             Option<Entity<V>> entityOption,

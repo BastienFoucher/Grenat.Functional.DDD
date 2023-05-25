@@ -11,14 +11,20 @@ This lightweight library allows you to:
 - Deal with asynchrony, concurrency and parallelism (in progress!) challenges with few and clear code thanks to the functional programming principles. 
 - Write thin application and infrastructure layers to maximize the proportion of code written in the domain layer.
 - Write few conditional logic. It will be handled thanks to functional thinking and operations like `Bind`, `Map`.
-- Perform error harvesting with a very little effort.
-- Chaining operations to improve the reliability and lisibility of DDD-style C# programs.
+- Harvest errors with a little effort.
+- Chain operations to improve the reliability and lisibility of DDD-style C# programs.
 
 # Article series
-I recommend you to read my article series [here](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
+I recommend to read [this article series](https://grenat.hashnode.dev/functional-ddd-with-c-part-1-the-benefits-of-functional-thinking) first.
 
-# Read the samples
-Have a look at the [test project](https://github.com/BastienFoucher/Grenat.Functional.DDD/tree/main/Grenat.Functional.DDD.Tests) and at the [samples repository](https://github.com/BastienFoucher/Articles.Examples).
+# A test project
+An ASP.Net Core Web API [test project](https://github.com/BastienFoucher/Grenat.Functional.DDD/tree/main/SampleProject) is available. 
+
+Add several items in a shopping cart, once it reaches a certain total amount, an error is returned.
+
+# A Roslyn code generator
+
+[This Roslyn code generator](https://github.com/BastienFoucher/Grenat.Functional.DDD.Generators) will help to write DDD's ubiquituous language code by generating builders, setters and constructors for you (beta).
 
 # `Option<T>`
 `Option<T>` is a container to model the presence or absence of data instead of using `null`.
@@ -51,7 +57,7 @@ private string GetOptionValue<T>(Option<T> value)
 }
 ````
 
-### Mapping
+### Map
 `Map` function is the same operator than `Select` in LINQ. It applies a function `Func<T,R>` to the inner value of `Option<T>` to transform its content.
 
 
@@ -87,7 +93,7 @@ public void When_mapping_a_function_on_a_none_value_then_it_is_not_applied()
 }
 ````
 
-### Binding
+### Bind
 Same usage as `Map`. The difference with `Map` is that `Bind` takes an `Option<R>` returning function, i.e `Func<T,Option<R>>`. Its is the same operator than `SelectMany` in LINQ. 
 
 ````C#
@@ -105,6 +111,29 @@ public void When_binding_three_AddOne_functions_on_Some_zero_value_then_the_resu
                             None: () => 0);
 
     Assert.AreEqual(3, result);
+}
+````
+
+### OrElse
+This function calls a fallback function if the value of an `Option<T>` is `None`.
+
+````C#
+[TestMethod]
+public void When_binding_a_function_returning_a_none_value_then_orelse_is_fired()
+{
+    var func = (int i) => None<int>();
+    var sut = Some(0);
+
+    var result = sut
+        .Bind(func) 
+        // Previous instruction returned None: 
+        // in that case, the given function to OrElse will be called.
+        .OrElse(() => Some(1000)) 
+        .Match(
+            Some: v => v,
+            None: () => 0);
+
+    Assert.IsTrue(result == 1000);
 }
 ````
 
@@ -393,25 +422,25 @@ Use these functions to set a property of an `Entity<T>` that contains an `Option
 
 ```C#
 // First entity
-public record LittleEntity
+public record InnerEntity
 {
     public readonly int Value = 0;
 
-    private LittleEntity(int value)
+    private InnerEntity(int value)
     {
         Value = value;
     }
 
-    public static Entity<LittleEntity> Create(int value)
+    public static Entity<InnerEntity> Create(int value)
     {
-        return Entity<LittleEntity>.Valid(new LittleEntity(value));
+        return Entity<InnerEntity>.Valid(new InnerEntity(value));
     }
 }
 
 // An other entity that contains the previous entity in an option propoperty
 public record ContainerEntity
 {
-    public Option<LittleEntity> LittleEntityOption { get; set; }
+    public Option<InnerEntity> InnerEntityOption { get; set; }
 
     /* ... */
 }
@@ -423,14 +452,14 @@ If predicates are not verified, then `Option<V>` will be `None`, else it will co
 var containerEntity = ContainerEntity.Create();
 
 containerEntity = containerEntity.SetEntityOption(
-    () => LittleEntity.Create(0), 
+    () => InnerEntity.Create(0), 
     () => false,
     static (containerEntity, v) => containerEntity with { TestEntityOption = v }); 
 
 // 2nd setter
-// containerEntity.LittleEntityOption will be equal to None.
+// containerEntity.InnerEntityOption will be equal to None.
 containerEntity = containerEntity.SetEntityOption(
-    LittleEntity.Create(0),
+    InnerEntity.Create(0),
     v => v.Value >= 1,
      static (containerEntity, v) => containerEntity with { TestEntityOption = v }); 
 ```
@@ -682,28 +711,7 @@ I suggest you read this [post](https://grenat.hashnode.dev/functional-ddd-with-c
 # Some patterns
 
 ## A source code generator
-I wrote [a Roslyn code generator](https://github.com/BastienFoucher/Grenat.Functional.DDD.Generators) to automatically generate code for the following patterns.
-
-## Creating "ubiquitous language" setters
-
-For better readability, you can create some setters using extension methods. Here is an example:
-
-```csharp
-public static class CartSetters
-{
-    public static Entity<Cart> SetId(this Entity<Cart> cart, string id) 
-    {
-        return cart.SetValueObject(Identifier.Create(id), static (cart, identifier) => cart with { Id = identifier });
-	}
-
-    public static Entity<Cart> SetTotalAmountWithoutTax(this Entity<Cart> cart, int totalAmount) 
-    {
-        return cart.SetValueObject(Amount.Create(totalAmount), static (cart, totalAmount) => cart with { TotalAmountWithoutTax = totalAmount });
-    }
-
-    /* ... */
-}
-```
+[A Roslyn code generator](https://github.com/BastienFoucher/Grenat.Functional.DDD.Generators) exists to automatically generate code for the following patterns.
 
 ## The problem of constructors
 
@@ -784,5 +792,28 @@ public record CartItemBuilder
     public CartItemBuilder WithAmount(int amount) { _amount = amount; return this; }
 
     public Entity<CartItem> Build() => Item.Create(_id, _productId, _amount);
+}
+```
+
+## Creating "ubiquitous language" setters
+
+For better readability, you can create some setters using extension methods. Be careful, setters can be an anti-pattern because they can lead to a data structure inconsistency. Use them wisely.
+
+Here is an example:
+
+```csharp
+public static class CartSetters
+{
+    public static Entity<Cart> SetId(this Entity<Cart> cart, string id) 
+    {
+        return cart.SetValueObject(Identifier.Create(id), static (cart, identifier) => cart with { Id = identifier });
+	}
+
+    public static Entity<Cart> SetTotalAmountWithoutTax(this Entity<Cart> cart, int totalAmount) 
+    {
+        return cart.SetValueObject(Amount.Create(totalAmount), static (cart, totalAmount) => cart with { TotalAmountWithoutTax = totalAmount });
+    }
+
+    /* ... */
 }
 ```

@@ -43,8 +43,8 @@
 
         public record ContainerEntity
         {
-            public TestValueObject ValueObject { get; set; }
-            public TestEntity Entity { get; set; }
+            public TestValueObject? ValueObject { get; set; }
+            public TestEntity? Entity { get; set; }
             public ImmutableList<TestEntity> SubEntities { get; set; }
             public ImmutableDictionary<int, TestEntity> SubEntitiesDictionary { get; set; }
             public Option<TestEntity> TestEntityOption { get; set; }
@@ -87,8 +87,7 @@
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => false,
-                Valid: v => v.ValueObject.Value == 1));
-
+                Valid: v => v.ValueObject!.Value == 1));
         }
 
         [TestMethod]
@@ -128,7 +127,7 @@
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => 0,
-                Valid: v => v.ValueObjects?.Count()) == 2);
+                Valid: v => v.ValueObjects?.Count) == 2);
 
         }
 
@@ -195,7 +194,7 @@
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => false,
-                Valid: v => v.Entity.Value == 1));
+                Valid: v => v.Entity!.Value == 1));
 
         }
 
@@ -236,7 +235,7 @@
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => 0,
-                Valid: v => v.SubEntities?.Count()) == 2);
+                Valid: v => v.SubEntities?.Count) == 2);
 
         }
 
@@ -305,7 +304,7 @@
 
             Assert.IsTrue(sut.Match(
                 Invalid: e => 0,
-                Valid: v => v.SubEntitiesDictionary?.Count()) == 2);
+                Valid: v => v.SubEntitiesDictionary?.Count) == 2);
 
         }
 
@@ -317,7 +316,7 @@
             subEntities = subEntities.Add(2, TestEntity.Create(2));
 
             var sut = Entity<ContainerEntity>.Invalid(new Error("Invalid entity"));
-            sut = sut.SetEntityDictionary(subEntities, static (e, l) => e with { SubEntitiesDictionary = l.ToImmutableDictionary() });
+            sut = sut.SetEntityDictionary(subEntities, static (e, l) => e with { SubEntitiesDictionary = l });
 
             Assert.IsFalse(sut.IsValid);
 
@@ -333,7 +332,7 @@
             subEntities = subEntities.Add(4, new Error("A second invalid entity"));
 
             var sut = ContainerEntity.Create();
-            sut = sut.SetEntityDictionary(subEntities, static (e, l) => e with { SubEntitiesDictionary = l.ToImmutableDictionary() });
+            sut = sut.SetEntityDictionary(subEntities, static (e, l) => e with { SubEntitiesDictionary = l });
 
             Assert.IsFalse(sut.IsValid);
             Assert.IsTrue(sut.Errors.Count() == 2);
@@ -865,6 +864,7 @@
             Assert.IsFalse(sut.IsValid);
         }
 
+        [TestMethod]
         public void When_creating_a_valid_entity_then_the_match_valid_function_is_fired()
         {
             var sut = Entity<int>.Valid(0);
@@ -1424,11 +1424,11 @@
             Entity<int> sut = Entity<int>.Valid(5);
             bool saveFunctionIsFired = false;
 
-            AsyncFunc<int, int, int> saveFunc = (dbContext, value) =>
+            Task<int> saveFunc(int dbContext, int value)
             {
                 saveFunctionIsFired = true;
                 return Task.FromResult(value);
-            };
+            }
 
             await sut.PersistAsync(saveFunc, 0);
 
@@ -1441,11 +1441,11 @@
             Entity<int> sut = Entity<int>.Invalid(new Error("Invalid entity"));
             bool saveFunctionIsFired = false;
 
-            AsyncFunc<int, int, int> saveFunc = (dbContext, value) =>
+            Task<int> saveFunc(int dbContext, int value)
             {
                 saveFunctionIsFired = true;
                 return Task.FromResult(value);
-            };
+            }
 
             await sut.PersistAsync(saveFunc, 0);
 
@@ -1458,11 +1458,11 @@
             Task<Entity<int>> sut = Task.FromResult(Entity<int>.Valid(5));
             bool saveFunctionIsFired = false;
 
-            AsyncFunc<int, int, int> saveFunc = (dbContext, value) =>
+            Task<int> saveFunc(int dbContext, int value)
             {
                 saveFunctionIsFired = true;
                 return Task.FromResult(value);
-            };
+            }
 
             await sut.PersistAsync(saveFunc, 0);
 
@@ -1475,11 +1475,11 @@
             Task<Entity<int>> sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
             bool saveFunctionIsFired = false;
 
-            AsyncFunc<int, int, int> saveFunc = (dbContext, value) =>
+            Task<int> saveFunc(int dbContext, int value)
             {
                 saveFunctionIsFired = true;
                 return Task.FromResult(value);
-            };
+            }
 
             await sut.PersistAsync(saveFunc, 0);
 

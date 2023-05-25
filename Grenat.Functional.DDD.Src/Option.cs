@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD
+﻿using System.Collections.Immutable;
+
+namespace Grenat.Functional.DDD
 {
     public record Option<T>
     {
@@ -32,6 +34,24 @@
             return option.Match(
                      Some: v => func(v),
                      None: () => None<R>());
+        }
+
+        public static Option<T> OrElse<T>(this Option<T> option, Func<Option<T>> ifNoneFunc)
+        {
+            return option.Match(
+                Some: v => option,
+                None: () => ifNoneFunc());
+        }
+    }
+
+    public static class IEnumerableExtensions
+    {
+        public static Option<T> GetValue<T, K>(this ImmutableDictionary<K, T> dictionary, K key) where K : notnull
+        {
+            if (dictionary.TryGetValue(key, out var value))
+                return Some(value);
+            else
+                return None<T>();
         }
     }
 }
