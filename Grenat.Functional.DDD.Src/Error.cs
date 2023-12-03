@@ -15,4 +15,12 @@
             Code = code;
         }
     }
+
+    public static class ErrorExtensions
+    {
+        public static string Concat(this IEnumerable<Error> errors, string separator = ", ")
+        {
+            return errors.Concat(separator);
+        }
+    }
 }
