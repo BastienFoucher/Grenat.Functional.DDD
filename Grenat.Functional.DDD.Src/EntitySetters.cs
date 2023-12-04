@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Grenat.Functional.DDD.Src;
+namespace Grenat.Functional.DDD;
 
 public static class EntitySetters
 {
@@ -27,7 +27,7 @@ public static class EntitySetters
         return entity.SetMember(value, executor);
     }
 
-    public static Entity<T> SetMember<T, V>(this Entity<T> entity, V value, Executor<T, V> executor)
+    private static Entity<T> SetMember<T, V>(this Entity<T> entity, V value, Executor<T, V> executor)
     {
         if (value is null) return entity;
 
@@ -69,29 +69,29 @@ public static class EntitySetters
                                 Invalid: e => entity));
     }
 
-    public static Entity<T> SetValueObjectList<T, V>(this T entity, ImmutableList<ValueObject<V>> valueObjects, Action<T, ImmutableList<V>> setter)
+    public static Entity<T> SetValueObjectList<T, V>(this T entity, IEnumerable<ValueObject<V>> valueObjects, Action<T, ImmutableList<V>> setter)
     {
         return Entity<T>.Valid(entity).SetValueObjectList(valueObjects, setter);
     }
 
-    public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, ImmutableList<ValueObject<V>> valueObjects, Action<T, ImmutableList<V>> setter)
+    public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, IEnumerable<ValueObject<V>> valueObjects, Action<T, ImmutableList<V>> setter)
     {
         var executor = new Executor<T, ImmutableList<V>>(setter);
         return parentEntity.SetValueObjectList(valueObjects, executor);
     }
 
-    public static Entity<T> SetValueObjectList<T, V>(this T entity, ImmutableList<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
+    public static Entity<T> SetValueObjectList<T, V>(this T entity, IEnumerable<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
     {
         return Entity<T>.Valid(entity).SetValueObjectList(valueObjects, setter);
     }
 
-    public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, ImmutableList<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
+    public static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, IEnumerable<ValueObject<V>> valueObjects, Func<T, ImmutableList<V>, T> setter)
     {
         var executor = new Executor<T, ImmutableList<V>>(setter);
         return parentEntity.SetValueObjectList(valueObjects, executor);
     }
 
-    private static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, ImmutableList<ValueObject<V>> valueObjects, Executor<T, ImmutableList<V>> executor)
+    private static Entity<T> SetValueObjectList<T, V>(this Entity<T> parentEntity, IEnumerable<ValueObject<V>> valueObjects, Executor<T, ImmutableList<V>> executor)
     {
         var validValues = ImmutableList<V>.Empty;
         var errors = new List<Error>();
@@ -161,12 +161,12 @@ public static class EntitySetters
                                 Invalid: e => parentEntity));
     }
 
-    public static Entity<T> SetEntityList<T, E>(this T parentEntity, ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
+    public static Entity<T> SetEntityList<T, E>(this T parentEntity, IEnumerable<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
     {
         return Entity<T>.Valid(parentEntity).SetEntityList(entities, setter);
     }
 
-    public static Entity<T> SetEntityList<T, E>(this Entity<T> parentEntity, ImmutableList<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
+    public static Entity<T> SetEntityList<T, E>(this Entity<T> parentEntity, IEnumerable<Entity<E>> entities, Func<T, ImmutableList<E>, T> setter)
     {
         var validValues = ImmutableList<E>.Empty;
         var errors = new List<Error>();

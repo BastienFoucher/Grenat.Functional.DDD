@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 
-namespace Grenat.Functional.DDD.Src;
+namespace Grenat.Functional.DDD;
 
 public static class EntityOperations
 {

@@ -1,8 +1,8 @@
 ﻿using System.Reflection.Metadata.Ecma335;
 
-namespace Grenat.Functional.DDD.Src;
+namespace Grenat.Functional.DDD;
 
-public class Executor<T, V>
+internal class Executor<T, V>
 {
     private Option<Func<T, V, T>> Func { get; set; }
 
