@@ -35,13 +35,6 @@ namespace Grenat.Functional.DDD
                      Some: v => func(v),
                      None: () => None<R>());
         }
-
-        public static Option<T> OrElse<T>(this Option<T> option, Func<Option<T>> ifNoneFunc)
-        {
-            return option.Match(
-                Some: v => option,
-                None: () => ifNoneFunc());
-        }
     }
 
     public static class IEnumerableExtensions

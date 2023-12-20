@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD.Tests;
+﻿using Grenat.Functional.DDD;
+
+namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
 public class EntityTests : EntityTestBase
@@ -658,73 +660,5 @@ public class EntityTests : EntityTestBase
                                    Invalid: e => 0);
 
         Assert.AreEqual(0, result);
-    }
-
-    [TestMethod]
-    public async Task WhenEntityIsValid_ThenPersistFireSaveMethod()
-    {
-        Entity<int> sut = Entity<int>.Valid(5);
-        bool saveFunctionIsFired = false;
-
-        Task<int> saveFunc(int dbContext, int value)
-        {
-            saveFunctionIsFired = true;
-            return Task.FromResult(value);
-        }
-
-        await sut.PersistAsync(saveFunc, 0);
-
-        Assert.IsTrue(saveFunctionIsFired);
-    }
-
-    [TestMethod]
-    public async Task WhenEntityIsInvalid_ThenPersistDoesNotFireSaveMethod()
-    {
-        Entity<int> sut = Entity<int>.Invalid(new Error("Invalid entity"));
-        bool saveFunctionIsFired = false;
-
-        Task<int> saveFunc(int dbContext, int value)
-        {
-            saveFunctionIsFired = true;
-            return Task.FromResult(value);
-        }
-
-        await sut.PersistAsync(saveFunc, 0);
-
-        Assert.IsFalse(saveFunctionIsFired);
-    }
-
-    [TestMethod]
-    public async Task WhenAwaitableEntityIsValid_ThenPersistFireSaveMethod()
-    {
-        Task<Entity<int>> sut = Task.FromResult(Entity<int>.Valid(5));
-        bool saveFunctionIsFired = false;
-
-        Task<int> saveFunc(int dbContext, int value)
-        {
-            saveFunctionIsFired = true;
-            return Task.FromResult(value);
-        }
-
-        await sut.PersistAsync(saveFunc, 0);
-
-        Assert.IsTrue(saveFunctionIsFired);
-    }
-
-    [TestMethod]
-    public async Task WhenAwaitableEntityIsInvalid_ThenPersistDoesNotFireSaveMethod()
-    {
-        Task<Entity<int>> sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
-        bool saveFunctionIsFired = false;
-
-        Task<int> saveFunc(int dbContext, int value)
-        {
-            saveFunctionIsFired = true;
-            return Task.FromResult(value);
-        }
-
-        await sut.PersistAsync(saveFunc, 0);
-
-        Assert.IsFalse(saveFunctionIsFired);
     }
 }

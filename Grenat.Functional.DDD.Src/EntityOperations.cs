@@ -4,25 +4,6 @@ namespace Grenat.Functional.DDD;
 
 public static class EntityOperations
 {
-
-    public static Entity<R> Map<T, R>(this Entity<T> Entity, Func<T, R> func)
-    {
-        return Entity.Match(
-            Valid: (value) => Entity<R>.Valid(func(value)),
-            Invalid: (err) => Entity<R>.Invalid(err));
-    }
-
-    public static Entity<T> Map<T>(this Entity<T> entity, Action<T> action)
-    {
-        return entity.Match(
-            Valid: (value) =>
-            {
-                action(value);
-                return entity;
-            },
-            Invalid: (err) => Entity<T>.Invalid(err));
-    }
-
     public static Task<Entity<T>> MapAsync<T>(this Entity<T> entity, AsyncAction<T> action)
     {
         return entity.Match(
@@ -260,21 +241,5 @@ public static class EntityOperations
         return await entity.Match(
             Valid: async (value) => await func(value, await arg()),
             Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static async Task<Entity<R>> PersistAsync<TDbContext, T, R>(this Entity<T> entity, AsyncFunc<TDbContext, T, R> save, TDbContext dbContext)
-    {
-        return await entity.Match(
-            Valid: async v => Entity<R>.Valid(await save(dbContext, v)),
-            Invalid: async e => Entity<R>.Invalid(await Task.FromResult(e)));
-    }
-
-    public static async Task<Entity<R>> PersistAsync<TDbContext, T, R>(this Task<Entity<T>> entityTask, AsyncFunc<TDbContext, T, R> save, TDbContext dbContext)
-    {
-        var entity = await entityTask;
-
-        return await entity.Match(
-            Valid: async v => Entity<R>.Valid(await save(dbContext, v)),
-            Invalid: async e => Entity<R>.Invalid(await Task.FromResult(e)));
     }
 }

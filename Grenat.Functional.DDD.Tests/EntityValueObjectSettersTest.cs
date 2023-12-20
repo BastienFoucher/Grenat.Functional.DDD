@@ -9,7 +9,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         var valueObject = TestValueObject.Create(1);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e with { ValueObject = vo });
+        sut = sut.Set(valueObject, static (e, vo) => e with { ValueObject = vo });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -22,7 +22,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         ValueObject<TestValueObject> valueObject = null!;
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e with { ValueObject = vo });
+        sut = sut.Set(valueObject, static (e, vo) => e with { ValueObject = vo });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -35,7 +35,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e with { ValueObject = vo });
+        sut = sut.Set(valueObject, static (e, vo) => e with { ValueObject = vo });
 
         Assert.IsTrue(!sut.IsValid);
     }
@@ -46,7 +46,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         var valueObject = TestValueObject.Create(1);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e.ValueObject = vo);
+        sut = sut.Set(valueObject, static (e, vo) => e.ValueObject = vo);
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -60,7 +60,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         ValueObject<TestValueObject> valueObject = null!;
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e.ValueObject = vo);
+        sut = sut.Set(valueObject, static (e, vo) => e.ValueObject = vo);
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -73,7 +73,7 @@ public class EntityValueObjectSettersTest : EntityTestBase
         ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObject(valueObject, static (e, vo) => e.ValueObject = vo);
+        sut = sut.Set(valueObject, static (e, vo) => e.ValueObject = vo);
 
         Assert.IsTrue(!sut.IsValid);
     }

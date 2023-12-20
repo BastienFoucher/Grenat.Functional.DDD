@@ -44,6 +44,7 @@ public class EntityTestBase
     {
         public int Id { get; set; }
         public List<int>? List { get; set; }
+        public HashSet<TestEntity> EntityHashSet { get; set; }
         public TestValueObject? ValueObject { get; set; }
         public TestEntity? Entity { get; set; }
         public ImmutableList<TestEntity> SubEntities { get; set; }

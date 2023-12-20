@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD.Tests;
+﻿using Grenat.Functional.DDD;
+
+namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
 public class ValueObject

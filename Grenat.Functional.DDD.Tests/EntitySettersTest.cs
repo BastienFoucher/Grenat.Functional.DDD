@@ -8,7 +8,7 @@ internal class EntitySettersTest : EntityTestBase
         var entity = TestEntity.Create(1);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntity(entity, static (e, vo) => e with { Entity = vo });
+        sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -21,7 +21,7 @@ internal class EntitySettersTest : EntityTestBase
         var entity = TestEntity.Create(1);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntity(entity, static (e, entity) => e.Entity = entity);
+        sut = sut.Set(entity, static (e, entity) => e.Entity = entity);
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -34,7 +34,7 @@ internal class EntitySettersTest : EntityTestBase
         Entity<TestEntity> entity = null!;
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntity(entity, static (e, vo) => e with { Entity = vo });
+        sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -47,7 +47,7 @@ internal class EntitySettersTest : EntityTestBase
         Entity<TestEntity> entity = new Error("Invalid entity");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntity(entity, static (e, vo) => e with { Entity = vo });
+        sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(!sut.IsValid);
     }

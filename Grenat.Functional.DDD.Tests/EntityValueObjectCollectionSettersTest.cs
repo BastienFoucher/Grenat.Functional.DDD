@@ -11,7 +11,7 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
@@ -21,12 +21,12 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
     [TestMethod]
     public void Test010_When_setting_a_collection_of_valueobjects_in_an_entity_using_an_action_then_its_collection_is_updated()
     {
-        ImmutableList<ValueObject<TestValueObject>> valueObjects = ImmutableList<ValueObject<TestValueObject>>.Empty;
+        var valueObjects = ImmutableList<ValueObject<TestValueObject>>.Empty;
         valueObjects = valueObjects.Add(TestValueObject.Create(1));
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e.ValueObjects = l) ;
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l }) ;
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
@@ -41,7 +41,7 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
         var sut = Entity<ContainerEntity>.Invalid(new Error("Invalid entity"));
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
 
         Assert.IsFalse(sut.IsValid);
 
@@ -57,7 +57,7 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(new Error("A second invalid entity"));
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
 
         Assert.IsFalse(sut.IsValid);
         Assert.IsTrue(sut.Errors.Count() == 2);
@@ -69,7 +69,7 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
 
         Assert.IsTrue(sut.Match(
             Valid: v => !v.ValueObjects.Any(),
@@ -81,7 +81,7 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
     {
         var sut = ContainerEntity.Create();
         ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
-        sut = sut.SetValueObjectList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
 
         Assert.IsTrue(sut.IsValid);
     }

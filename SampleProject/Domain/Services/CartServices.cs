@@ -25,7 +25,7 @@ public static class CartServices
         var totalItemAmount = Amount.Create(newCartItem.Amount.Value + existingCartItem.Amount.Value, "EUR");
 
         return Entity<CartItem>.Valid(existingCartItem)
-            .SetValueObject(totalItemAmount, (item, totalItemAmount) => item with { Amount = totalItemAmount })
+            .Set(totalItemAmount, (item, totalItemAmount) => item with { Amount = totalItemAmount })
             .Match(
                 Invalid: e => e,
                 Valid: i => Entity<Cart>.Valid(cart with { Items = cart.Items.SetItem(i.ProductId.Value, i) }));
@@ -39,6 +39,6 @@ public static class CartServices
     private static Entity<Cart> CalculateTotalPrice(Cart cart)
     {
         var totalAmount = Amount.Create(cart.Items.Sum(cartItem => cartItem.Value.Amount.Value), "EUR");
-        return cart.SetValueObject(totalAmount, (cart, totalAmount) => cart with { TotalAmount = totalAmount });
+        return cart.Set(totalAmount, (cart, totalAmount) => cart with { TotalAmount = totalAmount });
     }
 }

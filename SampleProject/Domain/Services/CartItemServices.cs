@@ -12,7 +12,7 @@
 
         public static Entity<CartItem> SetProductPrice(CartItem cartItem, ValueObject<Amount> price)
         {
-            return cartItem.SetValueObject(price, (item, price) => item with { Amount = price });
+            return cartItem.Set(price, (item, price) => item with { Amount = price });
         }
     }
 }

@@ -9,7 +9,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         var entity = TestEntity.Create(1);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(entity, v => v.Value >= 1, static (entity, optionedEntity) => entity with { TestEntityOption = optionedEntity });
+        sut = sut.SetOption(entity, v => v.Value >= 1, static (entity, optionedEntity) => entity with { TestEntityOption = optionedEntity });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -24,7 +24,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         var entity = TestEntity.Create(0);
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(entity, v => v.Value >= 1, static (e, v) => e with { TestEntityOption = v });
+        sut = sut.SetOption(entity, v => v.Value >= 1, static (e, v) => e with { TestEntityOption = v });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -39,7 +39,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         Entity<TestEntity> entity = new Error("Invalid subentity");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(entity, v => v.Value == 1, static (e, v) => e with { TestEntityOption = v });
+        sut = sut.SetOption(entity, v => v.Value == 1, static (e, v) => e with { TestEntityOption = v });
 
         Assert.IsFalse(sut.Match(
             Invalid: e => false,
@@ -52,7 +52,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         Entity<TestEntity> entity = new Error("Invalid subentity");
 
         Entity<ContainerEntity> sut = new Error("Invalid entity");
-        sut = sut.SetEntityOption(entity, v => v.Value == 1, static (e, v) => e with { TestEntityOption = v });
+        sut = sut.SetOption(entity, v => v.Value == 1, static (e, v) => e with { TestEntityOption = v });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => e.Count() == 2,
@@ -63,7 +63,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test050_When_setting_a_null_entity_in_an_valid_entity_then_the_resulting_option_is_none_2()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             (Entity<TestEntity>)null!,
             (entity) => true,
             static (e, v) => e with { TestEntityOption = v });
@@ -77,7 +77,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test060_When_setting_an_entity_option_without_predicate_then_the_entity_is_updated_with_some()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             Some(TestEntity.Create(1)),
             static (e, v) => e with { TestEntityOption = v });
 
@@ -92,7 +92,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test070_When_setting_a_valueobject_option_without_predicate_then_the_entity_is_updated_with_none()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             None<Entity<TestEntity>>(),
             static (e, v) => e with { TestEntityOption = v });
 
@@ -109,7 +109,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         var sut = ContainerEntity.Create();
         Entity<TestEntity> entity = new Error("Invalid value object");
 
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             Some(entity),
             static (e, v) => e with { TestEntityOption = v });
 
@@ -124,7 +124,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test090_When_setting_a_valid_valueobject_without_predicate_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
     {
         Entity<ContainerEntity> sut = new Error("Invalid entity");
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             Some(TestEntity.Create(1)),
             static (e, v) => e with { TestEntityOption = v });
 
@@ -137,7 +137,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test100_When_setting_a_null_entity_option_in_a_valid_entity_then_the_resulting_option_is_none_2()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             (Option<Entity<TestEntity>>)null!,
             static (e, v) => e with { TestEntityOption = v });
 
@@ -150,7 +150,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test110_When_setting_a_entity_option_with_a_null_inner_value_in_a_valid_entity_then_the_resulting_option_is_none()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             Some((Entity<TestEntity>)null!),
             static (e, v) => e with { TestEntityOption = v });
 
@@ -163,7 +163,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test120_When_setting_a_valueobject_option_then_the_entity_is_updated_with_some()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             () => TestValueObject.Create(1),
             () => true,
             static (e, v) => e with { TestValueObjectOption = v });
@@ -180,7 +180,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test130_When_setting_a_valueobject_option_then_the_entity_is_updated_with_none()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             () => TestValueObject.Create(1),
             () => false,
             static (e, v) => e with { TestValueObjectOption = v });
@@ -198,7 +198,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             () => valueObject,
             () => true,
             static (e, v) => e with { TestValueObjectOption = v });
@@ -214,7 +214,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test150_When_setting_a_valueobject_option_without_predicate_then_the_entity_is_updated_with_some()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             Some(TestValueObject.Create(1)),
             static (e, v) => e with { TestValueObjectOption = v });
 
@@ -229,9 +229,9 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test160_When_setting_an_entity_option_without_predicate_then_the_entity_is_updated_with_none()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
-            None<ValueObject<TestValueObject>>(),
-            static (e, v) => e with { TestValueObjectOption = v });
+        sut = sut.SetOption<ContainerEntity, TestValueObject>(
+                None<ValueObject<TestValueObject>>(),
+                static (e, v) => e with { TestValueObjectOption = v });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
@@ -246,7 +246,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         var sut = ContainerEntity.Create();
         ValueObject<TestValueObject> valueObject = new Error("Invalid value object");
 
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             Some(valueObject),
             static (e, v) => e with { TestValueObjectOption = v });
 
@@ -261,7 +261,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test180_When_setting_a_valid_entity_without_predicate_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
     {
         Entity<ContainerEntity> sut = new Error("Invalid entity");
-        sut = sut.SetValueObjectOption(
+        var test = sut.SetOption<ContainerEntity, TestValueObject>(
             Some(TestValueObject.Create(1)),
             static (e, v) => e with { TestValueObjectOption = v });
 
@@ -274,7 +274,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test190_When_setting_a_null_valueobject_option_in_a_valid_entity_then_the_resulting_option_is_none_2()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             (Option<ValueObject<TestValueObject>>)null!,
             static (e, v) => e with { TestValueObjectOption = v });
 
@@ -287,7 +287,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test200_When_setting_a_valueobject_option_with_a_null_inner_value_in_a_valid_entity_then_the_resulting_option_is_none()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             Some((ValueObject<TestValueObject>)null!),
             static (e, v) => e with { TestValueObjectOption = v });
 
@@ -300,7 +300,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test210_When_setting_a_valid_valueobject_option_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
     {
         Entity<ContainerEntity> sut = new Error("Invalid entity");
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             () => TestValueObject.Create(1),
             () => true,
             static (e, v) => e with { TestValueObjectOption = v });
@@ -314,7 +314,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test220_When_setting_a_null_valueobject_option_in_a_valid_entity_then_the_resulting_option_is_some()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetValueObjectOption(
+        sut = sut.SetOption(
             () => (ValueObject<TestValueObject>)null!,
             () => true,
             static (e, v) => e with { TestValueObjectOption = v });
@@ -328,7 +328,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test230_When_setting_an_entity_option_then_the_entity_is_updated_with_some()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             () => TestEntity.Create(1),
             () => true,
             static (e, v) => e with { TestEntityOption = v });
@@ -344,7 +344,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test240_When_setting_an_entity_option_then_the_entity_is_updated_with_none()
     {
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             () => TestEntity.Create(1),
             () => false,
             static (e, v) => e with { TestEntityOption = v });
@@ -362,7 +362,7 @@ internal class EntityOptionSettersTest : EntityTestBase
         Entity<TestEntity> entity = new Error("Invalid entity");
 
         var sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             () => entity,
             () => true,
             static (e, v) => e with { TestEntityOption = v });
@@ -378,7 +378,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test260_When_setting_a_valid_entity_in_an_invalid_entity_then_the_resulting_entity_is_invalid()
     {
         Entity<ContainerEntity> sut = new Error("Invalid entity");
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             () => TestEntity.Create(1),
             () => true,
             static (e, v) => e with { TestEntityOption = v });
@@ -393,7 +393,7 @@ internal class EntityOptionSettersTest : EntityTestBase
     public void Test270_When_setting_a_null_entity_in_an_valid_entity_then_the_resulting_option_is_none()
     {
         Entity<ContainerEntity> sut = ContainerEntity.Create();
-        sut = sut.SetEntityOption(
+        sut = sut.SetOption(
             () => (Entity<TestEntity>)null!,
             () => true,
             static (e, v) => e with { TestEntityOption = v });

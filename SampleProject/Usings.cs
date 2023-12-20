@@ -2,9 +2,6 @@
 
 global using Grenat.Functional.DDD;
 global using static Grenat.Functional.DDD.Option;
-global using static Grenat.Functional.DDD.Src.EntityOperations;
-global using static Grenat.Functional.DDD.Src.EntitySetters;
-
 global using SampleProject.Domain.Entities;
 global using SampleProject.Domain.ValueObjects;
 global using SampleProject.Application.Dto;
