@@ -1,9 +1,7 @@
-﻿using Grenat.Functional.DDD;
-
-namespace Grenat.Functional.DDD.Tests;
+﻿namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
-public class ValueObject
+public class ValueObjectTest
 {
     [TestMethod]
     public void Test010_When_creating_a_valid_value_object_then_its_state_is_valid()

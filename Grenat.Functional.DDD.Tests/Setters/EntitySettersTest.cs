@@ -1,13 +1,13 @@
 ﻿namespace Grenat.Functional.DDD.Tests;
 
-internal class EntitySettersTest : EntityTestBase
+internal class EntitySettersTest : TestBase
 {
     [TestMethod]
     public void Test010_When_setting_an_entity_in_an_entity_then_the_entity_is_updated()
     {
         var entity = TestEntity.Create(1);
 
-        var sut = ContainerEntity.Create();
+        var sut = MainEntity.Create();
         sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(sut.Match(
@@ -20,7 +20,7 @@ internal class EntitySettersTest : EntityTestBase
     {
         var entity = TestEntity.Create(1);
 
-        var sut = ContainerEntity.Create();
+        var sut = MainEntity.Create();
         sut = sut.Set(entity, static (e, entity) => e.Entity = entity);
 
         Assert.IsTrue(sut.Match(
@@ -33,7 +33,7 @@ internal class EntitySettersTest : EntityTestBase
     {
         Entity<TestEntity> entity = null!;
 
-        var sut = ContainerEntity.Create();
+        var sut = MainEntity.Create();
         sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(sut.Match(
@@ -46,7 +46,7 @@ internal class EntitySettersTest : EntityTestBase
     {
         Entity<TestEntity> entity = new Error("Invalid entity");
 
-        var sut = ContainerEntity.Create();
+        var sut = MainEntity.Create();
         sut = sut.Set(entity, static (e, vo) => e with { Entity = vo });
 
         Assert.IsTrue(!sut.IsValid);

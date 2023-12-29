@@ -1,7 +1,7 @@
 ﻿namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
-public class EntityValueObjectCollectionSettersTest : EntityTestBase
+public class EntityValueObjectCollectionSettersTest : TestBase
 {
     [TestMethod]
     public void Test010_When_setting_a_collection_of_valueobjects_in_an_entity_then_its_collection_is_updated()
@@ -10,12 +10,13 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(1));
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
-        var sut = ContainerEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        var sut = MainEntity.Create();
+
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
-            Valid: v => v.ValueObjects?.Count) == 2);
+            Valid: v => v.ImmutableValueObjectList?.Count) == 2);
     }
 
     [TestMethod]
@@ -25,12 +26,12 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(1));
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
-        var sut = ContainerEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l }) ;
+        var sut = MainEntity.Create();
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l }) ;
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
-            Valid: v => v.ValueObjects?.Count) == 2);
+            Valid: v => v.ImmutableValueObjectList?.Count) == 2);
     }
 
     [TestMethod]
@@ -40,8 +41,8 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(1));
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
-        var sut = Entity<ContainerEntity>.Invalid(new Error("Invalid entity"));
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        var sut = Entity<MainEntity>.Invalid(new Error("Invalid entity"));
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsFalse(sut.IsValid);
 
@@ -56,8 +57,8 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
         valueObjects = valueObjects.Add(new Error("A first invalid entity"));
         valueObjects = valueObjects.Add(new Error("A second invalid entity"));
 
-        var sut = ContainerEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        var sut = MainEntity.Create();
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsFalse(sut.IsValid);
         Assert.IsTrue(sut.Errors.Count() == 2);
@@ -68,20 +69,20 @@ public class EntityValueObjectCollectionSettersTest : EntityTestBase
     {
         ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
 
-        var sut = ContainerEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        var sut = MainEntity.Create();
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsTrue(sut.Match(
-            Valid: v => !v.ValueObjects.Any(),
+            Valid: v => !v.ImmutableValueObjectList.Any(),
             Invalid: e => false));
     }
 
     [TestMethod]
     public void Test050_When_setting_a_dictionary_with_null_valueobjects_in_an_entity_then_its_collection_is_not_updated()
     {
-        var sut = ContainerEntity.Create();
+        var sut = MainEntity.Create();
         ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ValueObjects = l });
+        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsTrue(sut.IsValid);
     }

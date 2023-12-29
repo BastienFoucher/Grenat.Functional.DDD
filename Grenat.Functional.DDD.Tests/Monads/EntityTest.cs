@@ -1,9 +1,7 @@
-﻿using Grenat.Functional.DDD;
-
-namespace Grenat.Functional.DDD.Tests;
+﻿namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
-public class EntityTests : EntityTestBase
+public class EntityTests : TestBase
 {
     [TestMethod]
     public async Task When_mapping_parallel_operations_on_entity_then_the_result_is_correct()

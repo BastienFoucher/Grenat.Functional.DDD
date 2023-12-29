@@ -184,7 +184,6 @@ public static class EntityOperations
             Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
     }
 
-    //ok
     public static async Task<Entity<R>> BindAsync<T, R>(this Task<Entity<T>> entityTask, Func<T, Entity<R>> func)
     {
         var entity = await entityTask;
@@ -194,7 +193,6 @@ public static class EntityOperations
             Invalid: (err) => Entity<R>.Invalid(err));
     }
 
-    //ok
     public static async Task<Entity<R>> BindAsync<T, R>(this Task<Entity<T>> entityTask, AsyncFunc<T, Entity<R>> func)
     {
         var entity = await entityTask;
@@ -204,7 +202,6 @@ public static class EntityOperations
             Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
     }
 
-    //ok
     public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, P arg)
     {
         var entity = await entityTask;
@@ -214,7 +211,6 @@ public static class EntityOperations
             Invalid: (err) => Entity<R>.Invalid(err));
     }
 
-    //ok
     public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, Func<P> arg)
     {
         var entity = await entityTask;
@@ -224,7 +220,6 @@ public static class EntityOperations
             Invalid: (err) => Entity<R>.Invalid(err));
     }
 
-    //ok
     public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, AsyncFunc<P> arg)
     {
         var entity = await entityTask;

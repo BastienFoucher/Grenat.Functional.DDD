@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-namespace Grenat.Functional.DDD;
+﻿namespace Grenat.Functional.DDD;
 
 internal class Executor<T, V>
 {

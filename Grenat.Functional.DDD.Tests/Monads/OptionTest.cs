@@ -1,7 +1,7 @@
 namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
-public class Option
+public class OptionTest
 {
     private string GetOptionValue<T>(Option<T> value)
     {

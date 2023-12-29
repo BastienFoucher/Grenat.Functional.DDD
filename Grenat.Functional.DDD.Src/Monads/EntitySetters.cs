@@ -72,54 +72,47 @@ public static class EntitySetters
 
     public static Entity<T> SetImmutableList<T, E>(
         this T parentEntity, 
-        ImmutableList<DddContainer<E>> dddContainers, 
+        ImmutableList<Entity<E>> entities, 
         Func<T, ImmutableList<E>, T> setter)
     {
-        return Entity<T>.Valid(parentEntity).SetImmutableList(dddContainers, setter);
+        return Entity<T>.Valid(parentEntity)
+            .SetImmutableList(entities, setter);
     }
 
     public static Entity<T> SetImmutableList<T, E>(
-        this Entity<T> parentEntity, 
-        ImmutableList<DddContainer<E>> dddContainers, 
+        this Entity<T> parentEntity,
+        ImmutableList<Entity<E>> entities,
         Func<T, ImmutableList<E>, T> setter)
     {
-        var validValues = ImmutableList<E>.Empty;
-        var errors = new List<Error>();
-
-        dddContainers ??= ImmutableList<DddContainer<E>>.Empty;
-
-        foreach (var item in dddContainers)
-        {
-            if (item.IsValid)
-            {
-                validValues = validValues.Add(
-                    item.Match(
-                        Valid: v => v,
-                        Invalid: e => default!
-                    ));
-            }
-            else
-            {
-                errors.AddRange(
-                    item.Match(
-                        Valid: v => default!,
-                        Invalid: e => e)
-                );
-            }
-        }
-
-        if (errors.Count > 0) return Entity<T>.Invalid(errors);
-        else
-        {
-            return parentEntity.Match(
-                Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
-                Valid: v => Entity<T>.Valid(setter(v, validValues)));
-        }
+        return parentEntity.Set(entities.Traverse(), (e, o) => setter(e, ToEmptyImmutableListIfNull(o)));
     }
+
+    private static ImmutableList<E> ToEmptyImmutableListIfNull<E>(IEnumerable<E> entities)
+    {
+        return entities == null ? ImmutableList<E>.Empty : entities.ToImmutableList();
+    }
+
+
+    public static Entity<T> SetImmutableList<T, E>(
+        this T parentEntity,
+        ImmutableList<ValueObject<E>> valueObjects,
+        Func<T, ImmutableList<E>, T> setter)
+    {
+        return Entity<T>.Valid(parentEntity).SetImmutableList(valueObjects, setter);
+    }
+
+    public static Entity<T> SetImmutableList<T, E>(
+        this Entity<T> parentEntity,
+        ImmutableList<ValueObject<E>> valueObjects,
+        Func<T, ImmutableList<E>, T> setter)
+    {
+        return parentEntity.Set(valueObjects.Traverse(), (e, o) => setter(e, o.ToImmutableList()));
+    }
+
 
     public static Entity<T> SetImmutableDictionary<T, E, K>(
         this T parentEntity,
-        ImmutableDictionary<K, DddContainer<E>> dddObjects,
+        ImmutableDictionary<K, ValueObject<E>> dddObjects,
         Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
     {
         return Entity<T>.Valid(parentEntity).SetImmutableDictionary(dddObjects, setter);
@@ -127,41 +120,26 @@ public static class EntitySetters
 
     public static Entity<T> SetImmutableDictionary<T, E, K>(
         this Entity<T> parentEntity,
-        ImmutableDictionary<K, DddContainer<E>> dddObjects,
+        ImmutableDictionary<K, ValueObject<E>> dddObjects,
         Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
     {
-        var validValues = ImmutableDictionary<K, E>.Empty;
-        var errors = new List<Error>();
+        return parentEntity.SetImmutableDictionary(dddObjects, setter);
+    }
 
-        dddObjects ??= ImmutableDictionary<K, DddContainer<E>>.Empty;
+    public static Entity<T> SetImmutableDictionary<T, E, K>(
+        this T parentEntity,
+        ImmutableDictionary<K, Entity<E>> dddObjects,
+        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+    {
+        return Entity<T>.Valid(parentEntity).SetImmutableDictionary(dddObjects, setter);
+    }
 
-        foreach (var entity in dddObjects)
-        {
-            if (entity.Value.IsValid)
-            {
-                validValues = validValues.Add(entity.Key,
-                    entity.Value.Match(
-                        Valid: v => v,
-                        Invalid: e => default!
-                    ));
-            }
-            else
-            {
-                errors.AddRange(
-                    entity.Value.Match(
-                        Valid: v => default!,
-                        Invalid: e => e)
-                );
-            }
-        }
-
-        if (errors.Count > 0) return Entity<T>.Invalid(errors);
-        else
-        {
-            return parentEntity.Match(
-                Invalid: e => Entity<T>.Invalid(e.Concat(parentEntity.Errors)),
-                Valid: v => Entity<T>.Valid(setter(v, validValues)));
-        }
+    public static Entity<T> SetImmutableDictionary<T, E, K>(
+        this Entity<T> parentEntity,
+        ImmutableDictionary<K, Entity<E>> dddObjects,
+        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+    {
+        return parentEntity.Set(dddObjects.Traverse(e => e), (e, o) => setter(e, o.ToImmutableDictionary()));
     }
 
     public static Entity<T> SetOption<T, V>(
@@ -178,6 +156,22 @@ public static class EntitySetters
         Func<T, Option<V>, T> setter)
     {
         return parentEntity.Set(valueObjectOption.Traverse(r => r), (e, o) => setter(e, o));
+    }
+
+    public static Entity<T> SetOption<T, V>(
+        this T parentEntity,
+        Option<Entity<V>> entityOption,
+        Func<T, Option<V>, T> setter)
+    {
+        return Entity<T>.Valid(parentEntity).SetOption(entityOption, setter);
+    }
+
+    public static Entity<T> SetOption<T, V>(
+        this Entity<T> parentEntity,
+        Option<Entity<V>> entityOption,
+        Func<T, Option<V>, T> setter)
+    {
+        return parentEntity.Set(entityOption.Traverse(r => r), (e, o) => setter(e, o));
     }
 
     public static Entity<T> SetOption<T, V>(
