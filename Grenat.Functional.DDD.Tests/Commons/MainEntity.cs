@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Grenat.Functional.DDD.Tests;
+﻿namespace Grenat.Functional.DDD.Tests;
 
 internal record MainEntity
 {

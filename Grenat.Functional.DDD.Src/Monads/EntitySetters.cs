@@ -87,12 +87,6 @@ public static class EntitySetters
         return parentEntity.Set(entities.Traverse(), (e, o) => setter(e, ToEmptyImmutableListIfNull(o)));
     }
 
-    private static ImmutableList<E> ToEmptyImmutableListIfNull<E>(IEnumerable<E> entities)
-    {
-        return entities == null ? ImmutableList<E>.Empty : entities.ToImmutableList();
-    }
-
-
     public static Entity<T> SetImmutableList<T, E>(
         this T parentEntity,
         ImmutableList<ValueObject<E>> valueObjects,
@@ -107,6 +101,11 @@ public static class EntitySetters
         Func<T, ImmutableList<E>, T> setter)
     {
         return parentEntity.Set(valueObjects.Traverse(), (e, o) => setter(e, o.ToImmutableList()));
+    }
+
+    private static ImmutableList<E> ToEmptyImmutableListIfNull<E>(IEnumerable<E> entities)
+    {
+        return entities == null ? ImmutableList<E>.Empty : entities.ToImmutableList();
     }
 
 
