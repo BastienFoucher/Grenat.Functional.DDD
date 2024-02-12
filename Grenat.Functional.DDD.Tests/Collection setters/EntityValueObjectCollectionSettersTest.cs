@@ -12,7 +12,7 @@ public class EntityValueObjectCollectionSettersTest : TestBase
 
         var sut = MainEntity.Create();
 
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
+        sut = sut.SetCollection(valueObjects, static (e, l) => e with { ImmutableValueObjectList  = l.ToImmutableList() });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
@@ -27,7 +27,7 @@ public class EntityValueObjectCollectionSettersTest : TestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l }) ;
+        sut = sut.SetCollection(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l }) ;
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
@@ -42,7 +42,7 @@ public class EntityValueObjectCollectionSettersTest : TestBase
         valueObjects = valueObjects.Add(TestValueObject.Create(2));
 
         var sut = Entity<MainEntity>.Invalid(new Error("Invalid entity"));
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
+        sut = sut.SetCollection(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsFalse(sut.IsValid);
 
@@ -58,33 +58,25 @@ public class EntityValueObjectCollectionSettersTest : TestBase
         valueObjects = valueObjects.Add(new Error("A second invalid entity"));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
+        sut = sut.SetCollection(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
 
         Assert.IsFalse(sut.IsValid);
         Assert.IsTrue(sut.Errors.Count() == 2);
     }
 
     [TestMethod]
-    public void Test040_When_setting_a_null_collection_an_entity_then_its_collection_is_empty()
+    public void Test030_When_setting_a_dictionary_with_invalid_valueobjects_in_an_entity_then_its_dictiorary_is_not_updated_and_errors_are_harvested()
     {
-        ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
+        var valueObjects = ImmutableDictionary<int, Entity<TestEntity>>.Empty;
+        valueObjects = valueObjects.Add(1, TestEntity.Create(1));
+        valueObjects = valueObjects.Add(2, TestEntity.Create(2));
+        valueObjects = valueObjects.Add(3, new Error("A first invalid entity"));
+        valueObjects = valueObjects.Add(4, new Error("A second invalid entity"));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
+        sut = sut.SetDictionary(valueObjects, static (e, l) => e with { ImmutableEntityDictionary = l });
 
-        Assert.IsTrue(sut.Match(
-            Valid: v => !v.ImmutableValueObjectList.Any(),
-            Invalid: e => false));
+        Assert.IsFalse(sut.IsValid);
+        Assert.IsTrue(sut.Errors.Count() == 2);
     }
-
-    [TestMethod]
-    public void Test050_When_setting_a_dictionary_with_null_valueobjects_in_an_entity_then_its_collection_is_not_updated()
-    {
-        var sut = MainEntity.Create();
-        ImmutableList<ValueObject<TestValueObject>> valueObjects = null!;
-        sut = sut.SetImmutableList(valueObjects, static (e, l) => e with { ImmutableValueObjectList = l });
-
-        Assert.IsTrue(sut.IsValid);
-    }
-
 }

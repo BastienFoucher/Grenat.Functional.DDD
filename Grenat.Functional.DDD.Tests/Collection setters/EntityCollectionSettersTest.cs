@@ -53,7 +53,7 @@ public class EntityCollectionSettersTest : TestBase
         var t = subEntities.Traverse();
 
         var sut = MainEntity.Create()
-                    .SetImmutableList(subEntities, static (e, l) => e with { ImmutableEntityList = l });
+                    .SetCollection(subEntities, static (e, l) => e with { ImmutableEntityList = l });
         //            .Set(result, static (e, l) => e with { EntityHashSet = l.ToHashSet() });
 
         Assert.IsTrue(sut.Match(
@@ -69,7 +69,7 @@ public class EntityCollectionSettersTest : TestBase
         subEntities = subEntities.Add(TestEntity.Create(2));
 
         var sut = Entity<MainEntity>.Invalid(new Error("Invalid entity"));
-        sut = sut.SetImmutableList(subEntities, static (e, l) => e with { ImmutableEntityList = l });
+        sut = sut.SetCollection(subEntities, static (e, l) => e with { ImmutableEntityList = l });
         var t = TestEntity.Create(5);
         sut = sut.Set(t, (c, o) => c.EntityHashSet.Add(o));
         sut = sut.Set(5, (c, i) => c.Id = i);
@@ -87,7 +87,7 @@ public class EntityCollectionSettersTest : TestBase
         subEntities = subEntities.Add(new Error("A second invalid entity"));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableList(subEntities, static (e, l) => e with { ImmutableEntityList = l });
+        sut = sut.SetCollection(subEntities, static (e, l) => e with { ImmutableEntityList = l });
 
         Assert.IsFalse(sut.IsValid);
         Assert.IsTrue(sut.Errors.Count() == 2);
@@ -98,7 +98,7 @@ public class EntityCollectionSettersTest : TestBase
     {
         var sut = MainEntity.Create();
         ImmutableList<Entity<TestEntity>> subEntities = null!;
-        sut = sut.SetImmutableList(subEntities, static (e, l) => e with { ImmutableEntityList = l });
+        sut = sut.SetCollection(subEntities, static (e, l) => e with { ImmutableEntityList = l });
 
         Assert.IsTrue(sut.IsValid);
     }
@@ -109,7 +109,7 @@ public class EntityCollectionSettersTest : TestBase
         ImmutableList<Entity<TestEntity>> entities = null!;
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableList(entities, static (e, l) => e with { ImmutableEntityList = l });
+        sut = sut.SetCollection(entities, static (e, l) => e with { ImmutableEntityList = l });
 
         Assert.IsTrue(sut.Match(
             Valid: v => !v.ImmutableEntityList.Any(),
@@ -124,7 +124,7 @@ public class EntityCollectionSettersTest : TestBase
         subEntities = subEntities.Add(2, TestEntity.Create(2));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
+        sut = sut.SetDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
 
         Assert.IsTrue(sut.Match(
             Invalid: e => 0,
@@ -140,7 +140,7 @@ public class EntityCollectionSettersTest : TestBase
         subEntities = subEntities.Add(2, TestEntity.Create(2));
 
         var sut = Entity<MainEntity>.Invalid(new Error("Invalid entity"));
-        sut = sut.SetImmutableDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
+        sut = sut.SetDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
 
         Assert.IsFalse(sut.IsValid);
 
@@ -156,7 +156,7 @@ public class EntityCollectionSettersTest : TestBase
         subEntities = subEntities.Add(4, new Error("A second invalid entity"));
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
+        sut = sut.SetDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
 
         Assert.IsFalse(sut.IsValid);
         Assert.IsTrue(sut.Errors.Count() == 2);
@@ -167,7 +167,7 @@ public class EntityCollectionSettersTest : TestBase
     {
         var sut = MainEntity.Create();
         ImmutableDictionary<int, Entity<TestEntity>> subEntities = null!;
-        sut = sut.SetImmutableDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
+        sut = sut.SetDictionary(subEntities, static (e, l) => e with { ImmutableEntityDictionary = l });
 
         Assert.IsTrue(sut.IsValid);
     }
@@ -178,7 +178,7 @@ public class EntityCollectionSettersTest : TestBase
         ImmutableDictionary<int, Entity<TestEntity>> entities = null!;
 
         var sut = MainEntity.Create();
-        sut = sut.SetImmutableDictionary(entities, static (e, l) => e with { ImmutableEntityDictionary = l });
+        sut = sut.SetDictionary(entities, static (e, l) => e with { ImmutableEntityDictionary = l });
 
         Assert.IsTrue(sut.Match(
             Valid: v => !v.ImmutableEntityDictionary.Any(),

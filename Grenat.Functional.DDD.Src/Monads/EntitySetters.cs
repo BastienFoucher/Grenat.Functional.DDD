@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Grenat.Functional.DDD;
 
@@ -70,19 +72,19 @@ public static class EntitySetters
                                 Invalid: e => parentEntity));
     }
 
-    public static Entity<T> SetImmutableList<T, E>(
-        this T parentEntity, 
-        ImmutableList<Entity<E>> entities, 
-        Func<T, ImmutableList<E>, T> setter)
+    public static Entity<T> SetCollection<T, E>(
+        this T parentEntity,
+        ICollection<Entity<E>> entities, 
+        Func<T, ICollection<E>, T> setter)
     {
         return Entity<T>.Valid(parentEntity)
-            .SetImmutableList(entities, setter);
+            .SetCollection(entities, setter);
     }
 
-    public static Entity<T> SetImmutableList<T, E>(
+    public static Entity<T> SetCollection<T, E>(
         this Entity<T> parentEntity,
-        ImmutableList<Entity<E>> entities,
-        Func<T, ImmutableList<E>, T> setter)
+        ICollection<Entity<E>> entities,
+        Func<T, ICollection<E>, T> setter)
     {
         return parentEntity.Set(entities.Traverse(), (e, o) => setter(e, ToEmptyImmutableListIfNull(o)));
     }
@@ -93,53 +95,88 @@ public static class EntitySetters
     }
 
 
-    public static Entity<T> SetImmutableList<T, E>(
+    public static Entity<T> SetCollection<T, V>(
         this T parentEntity,
-        ImmutableList<ValueObject<E>> valueObjects,
-        Func<T, ImmutableList<E>, T> setter)
+        ICollection<ValueObject<V>> valueObjects,
+        Func<T, ICollection<V>, T> setter)
     {
-        return Entity<T>.Valid(parentEntity).SetImmutableList(valueObjects, setter);
+        return Entity<T>.Valid(parentEntity).SetCollection(valueObjects, setter);
     }
 
-    public static Entity<T> SetImmutableList<T, E>(
+    public static Entity<T> SetCollection<T, V>(
         this Entity<T> parentEntity,
-        ImmutableList<ValueObject<E>> valueObjects,
-        Func<T, ImmutableList<E>, T> setter)
+        ICollection<ValueObject<V>> valueObjects,
+        Func<T, ICollection<V>, T> setter)
     {
-        return parentEntity.Set(valueObjects.Traverse(), (e, o) => setter(e, o.ToImmutableList()));
+        return parentEntity.Set(valueObjects.Traverse(), (e, o) => setter(e, o.ToCollection(valueObjects)));
     }
 
+    private static ICollection<T> ToCollection<T,C>(this IEnumerable<T> enumerator, C collectionTargetedType)
+    {
+        // Is there a better way for all of this code ?
+        if (collectionTargetedType == null)
+            return null!;
+        else if (collectionTargetedType.GetType().Name.StartsWith(nameof(ImmutableList)))
+            return enumerator.ToImmutableList();
+        else if (collectionTargetedType!.GetType().Name.StartsWith(nameof(ImmutableArray)))
+            return enumerator.ToImmutableArray();
+        else if (collectionTargetedType.GetType().Name.StartsWith(nameof(ImmutableHashSet)))
+            return enumerator.ToImmutableHashSet();
+        else if (collectionTargetedType.GetType().IsArray)
+            return enumerator.ToArray();
+        else if (collectionTargetedType.GetType().Name.StartsWith("HashSet"))
+            return enumerator.ToHashSet();
+        else if (collectionTargetedType.GetType().Name.StartsWith("List"))
+            return enumerator.ToList();
+        else
+            throw new ArgumentException($"Collection type {collectionTargetedType.GetType().Name} is not supported.");
+    }
 
-    public static Entity<T> SetImmutableDictionary<T, E, K>(
+    public static Entity<T> SetDictionary<T, E, K>(
         this T parentEntity,
-        ImmutableDictionary<K, ValueObject<E>> dddObjects,
-        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        IDictionary<K, ValueObject<E>> dddObjects,
+        Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
-        return Entity<T>.Valid(parentEntity).SetImmutableDictionary(dddObjects, setter);
+        return Entity<T>.Valid(parentEntity).SetDictionary(dddObjects, setter);
     }
 
-    public static Entity<T> SetImmutableDictionary<T, E, K>(
+    public static Entity<T> SetDictionary<T, E, K>(
         this Entity<T> parentEntity,
-        ImmutableDictionary<K, ValueObject<E>> dddObjects,
-        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        IDictionary<K, ValueObject<E>> dddObjects,
+        Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
-        return parentEntity.SetImmutableDictionary(dddObjects, setter);
+        return parentEntity.SetDictionary(dddObjects, setter);
     }
 
-    public static Entity<T> SetImmutableDictionary<T, E, K>(
+    public static Entity<T> SetDictionary<T, E, K>(
         this T parentEntity,
-        ImmutableDictionary<K, Entity<E>> dddObjects,
-        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        IDictionary<K, Entity<E>> dddObjects,
+        Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
-        return Entity<T>.Valid(parentEntity).SetImmutableDictionary(dddObjects, setter);
+        return Entity<T>.Valid(parentEntity).SetDictionary(dddObjects, setter);
     }
 
-    public static Entity<T> SetImmutableDictionary<T, E, K>(
+    public static Entity<T> SetDictionary<T, E, K>(
         this Entity<T> parentEntity,
-        ImmutableDictionary<K, Entity<E>> dddObjects,
-        Func<T, ImmutableDictionary<K, E>, T> setter) where K : notnull
+        IDictionary<K, Entity<E>> dddObjects,
+        Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
         return parentEntity.Set(dddObjects.Traverse(e => e), (e, o) => setter(e, o.ToImmutableDictionary()));
+    }
+
+    private static IDictionary<K, E> ToDictionaryCollection<K, E, C>(
+        this IEnumerable<KeyValuePair<K, E>> enumerator,
+        C dictionaryTargetedType)
+        where K : notnull
+    {
+        if (dictionaryTargetedType == null)
+            return null!;
+        else if (dictionaryTargetedType.GetType().Name.StartsWith(nameof(ImmutableDictionary)))
+            return enumerator.ToImmutableDictionary();
+        else if (dictionaryTargetedType.GetType().Name.StartsWith("Dictionary"))
+            return enumerator.ToDictionary(e => e.Key, e => e.Value);
+        else
+            throw new ArgumentException($"Dictionary type {typeof(C).Name} is not supported.");
     }
 
     public static Entity<T> SetOption<T, V>(

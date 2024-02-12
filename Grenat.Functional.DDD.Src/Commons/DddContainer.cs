@@ -1,4 +1,7 @@
-﻿namespace Grenat.Functional.DDD;
+﻿using Grenat.Functional.DDD.Src.Commons;
+using System.Runtime.Serialization;
+
+namespace Grenat.Functional.DDD;
 
 public record DddContainer<T>
 {
@@ -25,21 +28,18 @@ public record DddContainer<T>
 
 public static class DddContainerExtensions
 {
-    public static DddContainer<R> Bind<T, R>(this DddContainer<T> dddContainer, Func<T, DddContainer<R>> func)
-    {
-        return dddContainer.Match(
-            Valid: value => func(value),
-            Invalid: DddContainer<R>.Invalid);
-    }
-
-    public static DddContainer<R> Map<T, R>(this DddContainer<T> dddContainer, Func<T, R> func)
+    public static DddContainer<R> Map<T, R>(
+        this DddContainer<T> dddContainer, 
+        Func<T, R> func)
     {
         return dddContainer.Match(
             Valid: value => DddContainer<R>.Valid(func(value)),
             Invalid: DddContainer<R>.Invalid);
     }
 
-    public static DddContainer<T> Map<T>(this DddContainer<T> dddContainer, Action<T> action)
+    public static DddContainer<T> Map<T>(
+        this DddContainer<T> dddContainer,
+        Action<T> action)
     {
         return dddContainer.Match(
             Valid: (value) =>
@@ -48,6 +48,15 @@ public static class DddContainerExtensions
                 return dddContainer;
             },
             Invalid: Entity<T>.Invalid);
+    }
+
+    public static DddContainer<R> Bind<T, R>(
+        this DddContainer<T> dddContainer, 
+        Func<T, DddContainer<R>> func)
+    {
+        return dddContainer.Match(
+            Valid: value => func(value),
+            Invalid: DddContainer<R>.Invalid);
     }
 
     public static DddContainer<IEnumerable<T>> Traverse<T>(this IEnumerable<DddContainer<T>> dddContainers)
