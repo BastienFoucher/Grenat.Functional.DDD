@@ -36,7 +36,7 @@ public static partial class CartItemSetters
 
     public static Entity<CartItem> SetId(this Entity<CartItem> cartItem, ValueObject<Identifier> id)
     {
-        return cartItem.SetValueObject(id, static (cartItem, id) => cartItem with { Id = id });
+        return cartItem.Set(id, static (cartItem, id) => cartItem with { Id = id });
     }
 
     public static Entity<CartItem> SetCartId(this Entity<CartItem> cartItem, String value)
@@ -46,7 +46,7 @@ public static partial class CartItemSetters
 
     public static Entity<CartItem> SetCartId(this Entity<CartItem> cartItem, ValueObject<Identifier> id)
     {
-        return cartItem.SetValueObject(id, static (cartItem, id) => cartItem with { CartId = id });
+        return cartItem.Set(id, static (cartItem, id) => cartItem with { CartId = id });
     }
 
     public static Entity<CartItem> SetProductId(this Entity<CartItem> cartItem, String value)
@@ -56,7 +56,7 @@ public static partial class CartItemSetters
 
     public static Entity<CartItem> SetProductId(this Entity<CartItem> cartItem, ValueObject<Identifier> productId)
     {
-        return cartItem.SetValueObject(productId, static (cartItem, productId) => cartItem with { ProductId = productId });
+        return cartItem.Set(productId, static (cartItem, productId) => cartItem with { ProductId = productId });
     }
 
     public static Entity<CartItem> SetAmount(this Entity<CartItem> cartItem, Int32 value, String currency)
@@ -66,7 +66,7 @@ public static partial class CartItemSetters
 
     public static Entity<CartItem> SetAmount(this Entity<CartItem> cartItem, ValueObject<Amount> amount)
     {
-        return cartItem.SetValueObject(amount, static (cartItem, amount) => cartItem with { Amount = amount });
+        return cartItem.Set(amount, static (cartItem, amount) => cartItem with { Amount = amount });
     }
 
 }
