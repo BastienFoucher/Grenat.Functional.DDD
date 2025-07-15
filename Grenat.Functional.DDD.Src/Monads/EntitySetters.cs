@@ -1,6 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Grenat.Functional.DDD;
 
@@ -38,30 +36,30 @@ public static class EntitySetters
             Invalid: e => entity);
     }
 
-    public static Entity<T> Set<T, E>(this T parentEntity, DddContainer<E> dddContainer, Action<T, E> setter)
+    public static Entity<T> Set<T, E>(this T parentEntity, Result<E> dddContainer, Action<T, E> setter)
     {
         return Entity<T>.Valid(parentEntity).Set(dddContainer, setter);
     }
 
-    public static Entity<T> Set<T, E>(this Entity<T> parentEntity, DddContainer<E> dddContainer, Action<T, E> setter)
+    public static Entity<T> Set<T, E>(this Entity<T> parentEntity, Result<E> dddContainer, Action<T, E> setter)
     {
         var executor = new Executor<T, E>(setter);
         return parentEntity.Set(dddContainer, executor);
     }
 
-    public static Entity<T> Set<T, E>(this T parentEntity, DddContainer<E> dddContainer, Func<T, E, T> setter)
+    public static Entity<T> Set<T, E>(this T parentEntity, Result<E> dddContainer, Func<T, E, T> setter)
     {
         var executor = new Executor<T, E>(setter);
         return Entity<T>.Valid(parentEntity).Set(dddContainer, executor);
     }
 
-    public static Entity<T> Set<T, E>(this Entity<T> parentEntity, DddContainer<E> dddContainer, Func<T, E, T> setter)
+    public static Entity<T> Set<T, E>(this Entity<T> parentEntity, Result<E> dddContainer, Func<T, E, T> setter)
     {
         var executor = new Executor<T, E>(setter);
         return parentEntity.Set(dddContainer, executor);
     }
 
-    private static Entity<T> Set<T, E>(this Entity<T> parentEntity, DddContainer<E> dddContainer, Executor<T, E> executor)
+    private static Entity<T> Set<T, E>(this Entity<T> parentEntity, Result<E> dddContainer, Executor<T, E> executor)
     {
         if (dddContainer is null) return parentEntity;
 
@@ -134,22 +132,6 @@ public static class EntitySetters
 
     public static Entity<T> SetDictionary<T, E, K>(
         this T parentEntity,
-        IDictionary<K, ValueObject<E>> dddObjects,
-        Func<T, IDictionary<K, E>, T> setter) where K : notnull
-    {
-        return Entity<T>.Valid(parentEntity).SetDictionary(dddObjects, setter);
-    }
-
-    public static Entity<T> SetDictionary<T, E, K>(
-        this Entity<T> parentEntity,
-        IDictionary<K, ValueObject<E>> dddObjects,
-        Func<T, IDictionary<K, E>, T> setter) where K : notnull
-    {
-        return parentEntity.SetDictionary(dddObjects, setter);
-    }
-
-    public static Entity<T> SetDictionary<T, E, K>(
-        this T parentEntity,
         IDictionary<K, Entity<E>> dddObjects,
         Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
@@ -161,7 +143,7 @@ public static class EntitySetters
         IDictionary<K, Entity<E>> dddObjects,
         Func<T, IDictionary<K, E>, T> setter) where K : notnull
     {
-        return parentEntity.Set(dddObjects.Traverse(e => e), (e, o) => setter(e, o.ToImmutableDictionary()));
+        return parentEntity.Set(dddObjects.Traverse(e => e), (e, o) => setter(e, o.ToDictionaryCollection(dddObjects)));
     }
 
     private static IDictionary<K, E> ToDictionaryCollection<K, E, C>(
@@ -169,14 +151,16 @@ public static class EntitySetters
         C dictionaryTargetedType)
         where K : notnull
     {
-        if (dictionaryTargetedType == null)
-            return null!;
-        else if (dictionaryTargetedType.GetType().Name.StartsWith(nameof(ImmutableDictionary)))
-            return enumerator.ToImmutableDictionary();
-        else if (dictionaryTargetedType.GetType().Name.StartsWith("Dictionary"))
-            return enumerator.ToDictionary(e => e.Key, e => e.Value);
-        else
-            throw new ArgumentException($"Dictionary type {typeof(C).Name} is not supported.");
+        //if (dictionaryTargetedType == null)
+        //    return null!;
+        //else if (dictionaryTargetedType.GetType().Name.StartsWith(nameof(ImmutableDictionary)))
+        //    return enumerator.ToImmutableDictionary();
+        //else if (dictionaryTargetedType.GetType().Name.StartsWith("Dictionary"))
+        //    return enumerator.ToDictionary(e => e.Key, e => e.Value);
+        //else
+        //    throw new ArgumentException($"Dictionary type {typeof(C).Name} is not supported.");
+
+        return enumerator;
     }
 
     public static Entity<T> SetOption<T, V>(
@@ -213,7 +197,7 @@ public static class EntitySetters
 
     public static Entity<T> SetOption<T, V>(
         this Entity<T> parentEntity,
-        Func<DddContainer<V>> dddContainer,
+        Func<Result<V>> dddContainer,
         Func<bool> predicate,
         Func<T, Option<V>, T> setter)
     {
@@ -238,7 +222,7 @@ public static class EntitySetters
 
     public static Entity<T> SetOption<T, V>(
         this Entity<T> parentEntity,
-        DddContainer<V> entity,
+        Result<V> entity,
         Func<V, bool> predicate,
         Func<T, Option<V>, T> setter)
     {

@@ -8,10 +8,14 @@ public static class CartOperations
         AsyncFunc<string, ValueObject<Amount>> GetProductPrice,
         AsyncFunc<Cart, Cart> SaveCart)
     {
+        var verifyProduct = VerifyProduct;
+        var setProductPrice = SetProductPrice;
+        var addItemToCart = AddItemToCart;
+       
         var cart = await addProductToCartDto.ToCartItemEntity()
-            .BindAsync(VerifyProduct, () => CountProductIds(addProductToCartDto.ProductId))
-            .BindAsync(SetProductPrice, () => GetProductPrice(addProductToCartDto.ProductId))
-            .BindAsync(AddItemToCart, () => GetCart(addProductToCartDto.CartId))
+            .BindAsync(verifyProduct.Apply(() => CountProductIds(addProductToCartDto.ProductId)))
+            .BindAsync(setProductPrice.Apply(() => GetProductPrice(addProductToCartDto.ProductId)))
+            .BindAsync(addItemToCart.Apply(() => GetCart(addProductToCartDto.CartId)))
             .MapAsync(SaveCart);
 
         return cart.Match(

@@ -135,52 +135,10 @@ public static class EntityOperations
             Invalid: (err) => Entity<R>.Invalid(err));
     }
 
-    public static Entity<R> Bind<T, P, R>(this Entity<T> entity, Func<T, P, Entity<R>> func, P arg)
-    {
-        return entity.Match(
-            Valid: (value) => func(value, arg),
-            Invalid: (err) => Entity<R>.Invalid(err));
-    }
-
-    public static Entity<R> Bind<T, P, R>(this Entity<T> entity, Func<T, P, Entity<R>> func, Func<P> arg)
-    {
-        return entity.Match(
-            Valid: (value) => func(value, arg()),
-            Invalid: (err) => Entity<R>.Invalid(err));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Entity<T> entity, Func<T, P, Entity<R>> func, AsyncFunc<P> arg)
-    {
-        return await entity.Match(
-            Valid: async (value) => func(value, await arg()),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
     public static Task<Entity<R>> BindAsync<T, R>(this Entity<T> entity, AsyncFunc<T, Entity<R>> func)
     {
         return entity.Match(
             Valid: async (value) => await func(value),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static Task<Entity<R>> BindAsync<T, P, R>(this Entity<T> entity, AsyncFunc<T, P, Entity<R>> func, P arg)
-    {
-        return entity.Match(
-            Valid: async (value) => await func(value, arg),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static Task<Entity<R>> BindAsync<T, P, R>(this Entity<T> entity, AsyncFunc<T, P, Entity<R>> func, Func<P> arg)
-    {
-        return entity.Match(
-            Valid: async (value) => await func(value, arg()),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Entity<T> entity, AsyncFunc<T, P, Entity<R>> func, AsyncFunc<P> arg)
-    {
-        return await entity.Match(
-            Valid: async (value) => await func(value, await arg()),
             Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
     }
 
@@ -199,42 +157,6 @@ public static class EntityOperations
 
         return await entity.Match(
             Valid: async (value) => await func(value),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, P arg)
-    {
-        var entity = await entityTask;
-
-        return entity.Match(
-            Valid: (value) => func(value, arg),
-            Invalid: (err) => Entity<R>.Invalid(err));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, Func<P> arg)
-    {
-        var entity = await entityTask;
-
-        return entity.Match(
-            Valid: (value) => func(value, arg()),
-            Invalid: (err) => Entity<R>.Invalid(err));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, Func<T, P, Entity<R>> func, AsyncFunc<P> arg)
-    {
-        var entity = await entityTask;
-
-        return await entity.Match(
-            Valid: async (value) => func(value, await arg()),
-            Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
-    }
-
-    public static async Task<Entity<R>> BindAsync<T, P, R>(this Task<Entity<T>> entityTask, AsyncFunc<T, P, Entity<R>> func, AsyncFunc<P> arg)
-    {
-        var entity = await entityTask;
-
-        return await entity.Match(
-            Valid: async (value) => await func(value, await arg()),
             Invalid: async (err) => await Task.FromResult(Entity<R>.Invalid(err)));
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD.Tests;
+﻿using Grenat.Functional.DDD;
+
+namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
 public class EntityTests : TestBase
@@ -137,7 +139,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = sut.Map(IncrementEntityContentFunc)
+        var result = sut.Map(IncrementByOne)
                         .Match(
                             Valid: v => v,
                             Invalid: e => 0)
@@ -154,7 +156,7 @@ public class EntityTests : TestBase
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
         // 2 match function because Map, contrary to Bind, leads to Entity<Entity<int>>
-        var result = sut.Map(IncrementEntityContentFunc)
+        var result = sut.Map(IncrementByOne)
                         .Match(
                             Valid: v => v,
                             Invalid: e => 0)
@@ -170,7 +172,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.MapAsync(IncrementByOneAsync))
                                 .Match(
                                    Valid: v => "valid function",
                                    Invalid: e => "invalid function");
@@ -183,7 +185,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.MapAsync(IncrementByOneAsync))
                                 .Match(
                                    Valid: v => "valid function",
                                    Invalid: e => "invalid function");
@@ -196,7 +198,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.MapAsync(IncrementByOneAsync))
                                 .Match(
                                    Valid: v => "valid function",
                                    Invalid: e => "invalid function");
@@ -209,7 +211,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.MapAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.MapAsync(IncrementByOneAsync))
                                 .Match(
                                    Valid: v => "valid function",
                                    Invalid: e => "invalid function");
@@ -300,7 +302,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = sut.Bind(IncrementEntityContentFunc)
+        var result = sut.Bind(IncrementByOne)
                         .Match(
                            Valid: v => v,
                            Invalid: e => 0);
@@ -313,7 +315,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = sut.Bind(IncrementEntityContentFunc)
+        var result = sut.Bind(IncrementByOne)
                         .Match(
                             Valid: v => v,
                             Invalid: e => 0);
@@ -326,7 +328,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = sut.Bind(ParameterizedIncrementEntityContentFunc, 5)
+        var result = sut.Map(AddTwoNumbers.Apply(5))
                         .Match(
                            Valid: v => v,
                            Invalid: e => 0);
@@ -339,7 +341,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = sut.Bind(ParameterizedIncrementEntityContentFunc, 5)
+        var result = sut.Map(AddTwoNumbers.Apply(5))
                         .Match(
                             Valid: v => v,
                             Invalid: e => 0);
@@ -352,7 +354,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = sut.Bind(ParameterizedIncrementEntityContentFunc, () => 5)
+        var result = sut.Map(AddTwoNumbers.Apply(() => 5))
                         .Match(
                            Valid: v => v,
                            Invalid: e => 0);
@@ -365,7 +367,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = sut.Bind(ParameterizedIncrementEntityContentFunc, () => 5)
+        var result = sut.Map(AddTwoNumbers.Apply(() => 5))
                         .Match(
                             Valid: v => v,
                             Invalid: e => 0);
@@ -374,11 +376,29 @@ public class EntityTests : TestBase
     }
 
     [TestMethod]
+    public void When_Using_3_Args_Func()
+    {
+        var sut = Entity<int>.Valid(10);
+
+        var result = sut.Map(
+                            AddThreeNumbers
+                            .Apply(() => 5)
+                            .Apply(() => 4))
+                        .Match(
+                            Valid: v => v,
+                            Invalid: e => 0);
+
+        Assert.AreEqual(19, result);
+    }
+
+    [TestMethod]
     public async Task When_creating_a_valid_entity_then_awaitable_function_parameterized_async_bind_fires_thevalid_function()
     {
         var sut = Entity<int>.Valid(5);
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.MapAsync(
+                                    AddTwoNumbers
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -391,7 +411,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -404,7 +426,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = (await sut.BindAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOneValidAsync))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -417,7 +439,7 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.BindAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOneValidAsync))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -430,7 +452,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -443,7 +467,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -456,7 +482,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => 5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -469,7 +497,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Valid(0);
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -482,7 +512,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -496,7 +528,9 @@ public class EntityTests : TestBase
     {
         var sut = Entity<int>.Invalid(new Error("Invalid entity"));
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => 5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -509,7 +543,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(IncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOne))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -522,7 +556,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(IncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOne))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -535,7 +569,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOneValidAsync))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -548,7 +582,7 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(AwaitableIncrementEntityContentFunc))
+        var result = (await sut.BindAsync(IncrementByOneValidAsync))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -561,7 +595,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -574,7 +610,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -587,7 +625,8 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => 5))
+        var result = (await sut.BindAsync(AddTwoNumbersValid
+                                    .Apply(() => 5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -600,7 +639,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => 5))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(() => 5)))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -613,7 +654,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -626,7 +669,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(ParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValid
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -639,7 +684,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Valid(0));
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);
@@ -652,7 +699,9 @@ public class EntityTests : TestBase
     {
         var sut = Task.FromResult(Entity<int>.Invalid(new Error("Invalid entity")));
 
-        var result = (await sut.BindAsync(AwaitableParameterizedIncrementEntityContentFunc, () => Task.FromResult(5)))
+        var result = (await sut.BindAsync(
+                                    AddTwoNumbersValidAsync
+                                    .Apply(() => Task.FromResult(5))))
                                 .Match(
                                    Valid: v => v,
                                    Invalid: e => 0);

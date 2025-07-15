@@ -1,6 +1,6 @@
 ﻿namespace Grenat.Functional.DDD;
 
-public record ValueObject<T> : DddContainer<T>
+public record ValueObject<T> : Result<T>
 {
     private ValueObject(T t) : base(t) { }
     private ValueObject(IEnumerable<Error> errors) : base(errors) { }

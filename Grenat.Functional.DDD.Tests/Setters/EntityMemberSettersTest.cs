@@ -1,4 +1,6 @@
-﻿namespace Grenat.Functional.DDD.Tests;
+﻿using static Grenat.Functional.DDD.Tests.MainEntityAsRecord;
+
+namespace Grenat.Functional.DDD.Tests;
 
 [TestClass]
 public class EntityMemberSettersTest : TestBase
@@ -6,7 +8,7 @@ public class EntityMemberSettersTest : TestBase
     [TestMethod]
     public void Test010_When_setting_a_member_in_an_entity_then_the_entity_is_updated()
     {
-        var sut = MainEntity.Create();
+        var sut = MainEntityAsRecord.Create();
         sut = sut.Set(99, static (e, me) => e with { Id = me });
 
         Assert.IsTrue(sut.Match(
@@ -17,7 +19,7 @@ public class EntityMemberSettersTest : TestBase
     [TestMethod]
     public void Test011_When_setting_an_object_member_in_an_entity_then_the_entity_is_updated()
     {
-        var sut = MainEntity.Create();
+        var sut = MainEntityAsRecord.Create();
         sut = sut.Set(new List<int>() { 1,2,3,4}, static (e, me) => e with { List = me });
 
         Assert.IsTrue(sut.Match(
@@ -30,7 +32,7 @@ public class EntityMemberSettersTest : TestBase
     {
         List<int> list = null!;
 
-        var sut = MainEntity.Create();
+        var sut = MainEntityAsRecord.Create();
         sut = sut.Set(list, static (e, me) => e with { List = me });
 
         Assert.IsTrue(sut.Match(
@@ -41,7 +43,7 @@ public class EntityMemberSettersTest : TestBase
     [TestMethod]
     public void Test040_When_setting_a_member_in_an_entity_using_an_action_then_the_entity_is_updated()
     {
-        var sut = MainEntity.Create();
+        var sut = MainEntityAsRecord.Create();
         sut = sut.Set(99, static (e, me) => e.Id = me);
 
         Assert.IsTrue(sut.Match(
@@ -54,11 +56,24 @@ public class EntityMemberSettersTest : TestBase
     {
         List<int> list = null!;
 
-        var sut = MainEntity.Create();
+        var sut = MainEntityAsRecord.Create();
         sut = sut.Set(list, static (e, me) => e.List = me);
 
         Assert.IsTrue(sut.Match(
             Invalid: e => false,
             Valid: v => v.List == null));
+    }
+
+    [TestMethod]
+    public void Test()
+    {
+        var mc = new MainEntityAsClass();
+
+        var r = Entity<MainEntityAsClass>.Valid(mc)
+            .Set(PositiveValueObject.Create(-3), (mc, v) => mc.ValueObject1 = v)
+            .Set(PositiveValueObject.Create(-5), (mc, v) => mc.ValueObject2 = v);
+
+
+
     }
 }

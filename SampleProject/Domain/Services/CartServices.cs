@@ -2,22 +2,26 @@
 
 public static class CartServices
 {
-    public static Entity<Cart> AddItemToCart(CartItem cartItem, Option<Entity<Cart>> cart)
+    public static Entity<Cart> AddItemToCart(Option<Entity<Cart>> cart, CartItem cartItem)
     {
+        var createOrUpdateCartitem = CreateOrUpdateCartItem;
+
         return cart.Match(
-            None: () => new CartBuilder()
-                .WithId(Guid.NewGuid().ToString())
-                .Build(),
+            None: () => Cart.Create(
+                    Guid.NewGuid().ToString(), 
+                    ImmutableDictionary<string, Entity<CartItem>>.Empty,
+                    cartItem.Amount.Value,
+                    "EUR"),
             Some: c => c)
-        .Bind(CreateOrUpdateCartItem, cartItem)
+        .Bind(createOrUpdateCartitem.Apply(cartItem))
         .Bind(CalculateTotalPrice);
     }
 
-    private static Entity<Cart> CreateOrUpdateCartItem(Cart cart, CartItem cartItem)
+    private static Entity<Cart> CreateOrUpdateCartItem(CartItem cartItem, Cart cart)
     {
-        return cart.Items.GetValue(cartItem.ProductId.Value).Match(
-            Some: v => UpdateItem(cart, v, cartItem),
-            None: () => NewCartItem(cart, cartItem));
+        return cart.Items.ContainsKey(cartItem.ProductId.Value)
+            ? UpdateItem(cart, cartItem, cartItem)
+            : NewCartItem(cart, cartItem);
     }
 
     private static Entity<Cart> UpdateItem(Cart cart, CartItem newCartItem, CartItem existingCartItem)

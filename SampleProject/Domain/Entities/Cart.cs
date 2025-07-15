@@ -3,7 +3,7 @@
 public partial record Cart
 {
     public Identifier Id { get; init; }
-    public ImmutableDictionary<string, CartItem> Items { get; init; }
+    public IDictionary<string, CartItem> Items { get; init; }
     public Amount TotalAmount { get; init; }
 
     public Cart()
@@ -38,7 +38,7 @@ public static partial class CartSetters
 
     public static Entity<Cart> SetItems(this Entity<Cart> cart, ImmutableDictionary<string, Entity<CartItem>> items)
     {
-        return cart.SetImmutableDictionary(items, static (cart, items) => cart with { Items = items });
+        return cart.SetDictionary(items, static (cart, items) => cart with { Items = items });
     }
 
     public static Entity<Cart> SetTotalAmount(this Entity<Cart> cart, Int32 value, String currency)

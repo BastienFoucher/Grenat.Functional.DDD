@@ -1,6 +1,6 @@
 ﻿namespace Grenat.Functional.DDD;
 
-public record Entity<T> : DddContainer<T>
+public record Entity<T> : Result<T>
 {
     private Entity(T t) : base(t) { }
     private Entity(IEnumerable<Error> errors) : base(errors) { }

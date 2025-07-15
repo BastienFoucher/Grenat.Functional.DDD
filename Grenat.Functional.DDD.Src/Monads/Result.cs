@@ -1,9 +1,6 @@
-﻿using Grenat.Functional.DDD.Src.Commons;
-using System.Runtime.Serialization;
+﻿namespace Grenat.Functional.DDD;
 
-namespace Grenat.Functional.DDD;
-
-public record DddContainer<T>
+public record Result<T>
 {
     public readonly IEnumerable<Error> Errors;
 
@@ -11,13 +8,13 @@ public record DddContainer<T>
 
     protected readonly T _value;
 
-    protected DddContainer(T t) => (Errors, _value) = (Enumerable.Empty<Error>(), t ?? throw new ArgumentNullException(nameof(t)));
+    protected Result(T t) => (Errors, _value) = (Enumerable.Empty<Error>(), t ?? throw new ArgumentNullException(nameof(t)));
 
-    protected DddContainer(IEnumerable<Error> errors) => (Errors, _value) = (errors, default(T)!);
+    protected Result(IEnumerable<Error> errors) => (Errors, _value) = (errors, default(T)!);
 
-    public static DddContainer<T> Valid(T t) => new DddContainer<T>(t);
-    public static DddContainer<T> Invalid(IEnumerable<Error> errors) => new(errors);
-    public static DddContainer<T> Invalid(Error error) => Invalid(new[] { error });
+    public static Result<T> Valid(T t) => new Result<T>(t);
+    public static Result<T> Invalid(IEnumerable<Error> errors) => new(errors);
+    public static Result<T> Invalid(Error error) => Invalid(new[] { error });
 
     public R Match<R>(Func<Error[], R> Invalid, Func<T, R> Valid)
     {
@@ -28,17 +25,17 @@ public record DddContainer<T>
 
 public static class DddContainerExtensions
 {
-    public static DddContainer<R> Map<T, R>(
-        this DddContainer<T> dddContainer, 
+    public static Result<R> Map<T, R>(
+        this Result<T> dddContainer,
         Func<T, R> func)
     {
         return dddContainer.Match(
-            Valid: value => DddContainer<R>.Valid(func(value)),
-            Invalid: DddContainer<R>.Invalid);
+            Valid: value => Result<R>.Valid(func(value)),
+            Invalid: Result<R>.Invalid);
     }
 
-    public static DddContainer<T> Map<T>(
-        this DddContainer<T> dddContainer,
+    public static Result<T> Map<T>(
+        this Result<T> dddContainer,
         Action<T> action)
     {
         return dddContainer.Match(
@@ -50,34 +47,34 @@ public static class DddContainerExtensions
             Invalid: Entity<T>.Invalid);
     }
 
-    public static DddContainer<R> Bind<T, R>(
-        this DddContainer<T> dddContainer, 
-        Func<T, DddContainer<R>> func)
+    public static Result<R> Bind<T, R>(
+        this Result<T> dddContainer,
+        Func<T, Result<R>> func)
     {
         return dddContainer.Match(
             Valid: value => func(value),
-            Invalid: DddContainer<R>.Invalid);
+            Invalid: Result<R>.Invalid);
     }
 
-    public static DddContainer<IEnumerable<T>> Traverse<T>(this IEnumerable<DddContainer<T>> dddContainers)
+    public static Result<IEnumerable<T>> Traverse<T>(this IEnumerable<Result<T>> dddContainers)
     {
         return dddContainers.Traverse(t => t);
     }
 
-    public static DddContainer<IEnumerable<R>> Traverse<T, R>(this IEnumerable<DddContainer<T>> dddObjects, Func<T, R> func)
+    public static Result<IEnumerable<R>> Traverse<T, R>(this IEnumerable<Result<T>> dddObjects, Func<T, R> func)
     {
         if (dddObjects == null)
-            return DddContainer<IEnumerable<R>>.Valid(Enumerable.Empty<R>());
+            return Result<IEnumerable<R>>.Valid(Enumerable.Empty<R>());
 
         var dddContainersInError = dddObjects.Where(e => !e.IsValid);
 
         if (dddContainersInError.Any())
-            return DddContainer<IEnumerable<R>>.Invalid(dddContainersInError.SelectMany(e => e.Errors));
+            return Result<IEnumerable<R>>.Invalid(dddContainersInError.SelectMany(e => e.Errors));
         else
-            return DddContainer<IEnumerable<R>>.Valid(dddObjects.AsEnumerable(func));
+            return Result<IEnumerable<R>>.Valid(dddObjects.AsEnumerable(func));
     }
 
-    private static IEnumerable<R> AsEnumerable<T, R>(this IEnumerable<DddContainer<T>> entities, Func<T, R> func)
+    private static IEnumerable<R> AsEnumerable<T, R>(this IEnumerable<Result<T>> entities, Func<T, R> func)
     {
         foreach (var entity in entities)
         {
@@ -87,20 +84,20 @@ public static class DddContainerExtensions
         }
     }
 
-    public static DddContainer<IEnumerable<KeyValuePair<K, R>>> Traverse<K, T, R>(
+    public static Result<IEnumerable<KeyValuePair<K, R>>> Traverse<K, T, R>(
         this IEnumerable<KeyValuePair<K, Entity<T>>> entitiesDictionary,
         Func<T, R> func)
     {
         if (entitiesDictionary == null)
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>.Valid(Enumerable.Empty<KeyValuePair<K, R>>());
+            return Result<IEnumerable<KeyValuePair<K, R>>>.Valid(Enumerable.Empty<KeyValuePair<K, R>>());
 
         var dddContainersInError = entitiesDictionary.Where(e => !e.Value.IsValid);
 
         if (dddContainersInError.Any())
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>
+            return Result<IEnumerable<KeyValuePair<K, R>>>
                 .Invalid(dddContainersInError.SelectMany(e => e.Value.Errors));
         else
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>.Valid(entitiesDictionary.AsEnumerable(func));
+            return Result<IEnumerable<KeyValuePair<K, R>>>.Valid(entitiesDictionary.AsEnumerable(func));
     }
 
     private static IEnumerable<KeyValuePair<K, R>> AsEnumerable<K, T, R>(this IEnumerable<KeyValuePair<K, Entity<T>>> entities, Func<T, R> func)
@@ -113,20 +110,20 @@ public static class DddContainerExtensions
         }
     }
 
-    public static DddContainer<IEnumerable<KeyValuePair<K, R>>> Traverse<K, T, R>(
+    public static Result<IEnumerable<KeyValuePair<K, R>>> Traverse<K, T, R>(
     this IEnumerable<KeyValuePair<K, ValueObject<T>>> valueObjectsDictionary,
     Func<T, R> func)
     {
         if (valueObjectsDictionary == null)
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>.Valid(Enumerable.Empty<KeyValuePair<K, R>>());
+            return Result<IEnumerable<KeyValuePair<K, R>>>.Valid(Enumerable.Empty<KeyValuePair<K, R>>());
 
         var dddContainersInError = valueObjectsDictionary.Where(e => !e.Value.IsValid);
 
         if (dddContainersInError.Any())
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>
+            return Result<IEnumerable<KeyValuePair<K, R>>>
                 .Invalid(dddContainersInError.SelectMany(e => e.Value.Errors));
         else
-            return DddContainer<IEnumerable<KeyValuePair<K, R>>>.Valid(valueObjectsDictionary.AsEnumerable(func));
+            return Result<IEnumerable<KeyValuePair<K, R>>>.Valid(valueObjectsDictionary.AsEnumerable(func));
     }
 
     private static IEnumerable<KeyValuePair<K, R>> AsEnumerable<K, T, R>(this IEnumerable<KeyValuePair<K, ValueObject<T>>> valueObjects, Func<T, R> func)
