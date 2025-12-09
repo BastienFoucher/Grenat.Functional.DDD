@@ -2,22 +2,26 @@
 
 public static class CartServices
 {
-    public static Entity<Cart> AddItemToCart(CartItem cartItem, Option<Entity<Cart>> cart)
+    public static Entity<Cart> AddItemToCart(Option<Entity<Cart>> cart, CartItem cartItem)
     {
+        var createOrUpdateCartitem = CreateOrUpdateCartItem;
+
         return cart.Match(
-            None: () => new CartBuilder()
-                .WithId(Guid.NewGuid().ToString())
-                .Build(),
+            None: () => Cart.Create(
+                    Guid.NewGuid().ToString(), 
+                    ImmutableDictionary<string, Entity<CartItem>>.Empty,
+                    cartItem.Amount.Value,
+                    "EUR"),
             Some: c => c)
-        .Bind(CreateOrUpdateCartItem, cartItem)
+        .Bind(createOrUpdateCartitem.Apply(cartItem))
         .Bind(CalculateTotalPrice);
     }
 
-    private static Entity<Cart> CreateOrUpdateCartItem(Cart cart, CartItem cartItem)
+    private static Entity<Cart> CreateOrUpdateCartItem(CartItem cartItem, Cart cart)
     {
-        return cart.Items.GetValue(cartItem.ProductId.Value).Match(
-            Some: v => UpdateItem(cart, v, cartItem),
-            None: () => NewCartItem(cart, cartItem));
+        return cart.Items.ContainsKey(cartItem.ProductId.Value)
+            ? UpdateItem(cart, cartItem, cartItem)
+            : NewCartItem(cart, cartItem);
     }
 
     private static Entity<Cart> UpdateItem(Cart cart, CartItem newCartItem, CartItem existingCartItem)
@@ -25,7 +29,7 @@ public static class CartServices
         var totalItemAmount = Amount.Create(newCartItem.Amount.Value + existingCartItem.Amount.Value, "EUR");
 
         return Entity<CartItem>.Valid(existingCartItem)
-            .SetValueObject(totalItemAmount, (item, totalItemAmount) => item with { Amount = totalItemAmount })
+            .Set(totalItemAmount, (item, totalItemAmount) => item with { Amount = totalItemAmount })
             .Match(
                 Invalid: e => e,
                 Valid: i => Entity<Cart>.Valid(cart with { Items = cart.Items.SetItem(i.ProductId.Value, i) }));
@@ -39,6 +43,6 @@ public static class CartServices
     private static Entity<Cart> CalculateTotalPrice(Cart cart)
     {
         var totalAmount = Amount.Create(cart.Items.Sum(cartItem => cartItem.Value.Amount.Value), "EUR");
-        return cart.SetValueObject(totalAmount, (cart, totalAmount) => cart with { TotalAmount = totalAmount });
+        return cart.Set(totalAmount, (cart, totalAmount) => cart with { TotalAmount = totalAmount });
     }
 }
